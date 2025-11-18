@@ -7,3 +7,4 @@ torch
 torchvision
 torchmetrics
 lightning
+"kagglehub[pandas-datasets]"

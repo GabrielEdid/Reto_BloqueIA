@@ -16,7 +16,7 @@ PyTorch and PyTorch Lightning project workspace.
 
 ## Quick Setup
 
-Run the automated setup script to install all dependencies and create the environment file:
+Run the automated setup script to create a virtual environment and install all dependencies:
 
 ```bash
 chmod +x setup.sh
@@ -25,28 +25,33 @@ chmod +x setup.sh
 
 This script will:
 
-1. Create a `.env` file with default configuration (if it doesn't exist)
-2. Check for Python 3 and pip installation
-3. Install all required Python packages from `requirements.txt`
+1. Create a Python virtual environment in the `env/` directory (if it doesn't exist)
+2. Activate the virtual environment
+3. Upgrade pip
+4. Install all required Python packages from `requirements.txt`
 
 ### Manual Setup
 
 If you prefer to set up manually:
 
 ```bash
-# Install dependencies
-pip3 install -r requirements.txt
+# Create virtual environment
+python3 -m venv env
 
-# Create .env file (optional)
-cp .env.example .env  # Edit with your preferred settings
+# Activate virtual environment
+source env/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
 ## Project Structure
 
+- `Reto.ipynb` - Main Jupyter notebook for the project
 - `Project_Traffic_sign_classifier.ipynb` - Reference Jupyter notebook
 - `requirements.txt` - Python package dependencies
 - `setup.sh` - Automated setup script
-- `.env` - Environment variables for configuration (created by setup script)
+- `env/` - Python virtual environment (created by setup script)
 
 ## Usage
 
@@ -57,19 +62,41 @@ cp .env.example .env  # Edit with your preferred settings
    ./setup.sh
    ```
 
-2. Open the Jupyter notebook:
+2. The virtual environment will be automatically activated. For future sessions, activate it manually:
 
    ```bash
-   jupyter notebook Project_Traffic_sign_classifier.ipynb
+   source env/bin/activate
+   ```
+
+3. Open the Jupyter notebook:
+
+   ```bash
+   jupyter notebook Reto.ipynb
    ```
 
    Or open it directly in VS Code.
 
-3. Start working on your project using the installed dependencies.
+4. Start working on your project using the installed dependencies.
+
+## Virtual Environment
+
+The setup script creates a virtual environment in the `env/` directory to isolate project dependencies.
+
+To activate the virtual environment:
+
+```bash
+source env/bin/activate
+```
+
+To deactivate:
+
+```bash
+deactivate
+```
 
 ## Configuration
 
-You can modify parameters in the `.env` file to configure your environment and project settings.
+Configure your project settings as needed within your notebooks or by creating configuration files for your specific use case.
 
 ## Dependencies
 
