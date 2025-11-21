@@ -1,6 +1,21 @@
 # Reto_BloqueIA
 
-PyTorch and PyTorch Lightning project workspace.
+PyTorch and PyTorch Lightning project workspace for receipt OCR and information extraction using the CORD-v2 dataset.
+
+## Dataset
+
+This project uses the **CORD-v2 (Consolidated Receipt Dataset v2)** from Naver Clova IX:
+
+- Dataset: `naver-clova-ix/cord-v2`
+- Source: Hugging Face Datasets
+- Content: Receipt images with OCR annotations, bounding boxes, and structured information
+
+The CORD-v2 dataset contains:
+
+- Receipt images
+- OCR text annotations
+- Bounding box coordinates
+- Structured key-value information extraction
 
 ## Features
 
