@@ -2,6 +2,20 @@
 
 PyTorch and PyTorch Lightning project workspace for receipt OCR and information extraction using the CORD-v2 dataset.
 
+## Projects
+
+This repository contains two main projects:
+
+### 1. Receipt OCR & Information Extraction (Python/PyTorch)
+
+Machine learning project for processing receipt images and extracting structured information.
+
+### 2. TicketRecognition (React Native/Expo)
+
+Mobile application for capturing and uploading ticket/receipt photos.
+
+📱 [View TicketRecognition Documentation](./TicketRecognition/README.md)
+
 ## Dataset
 
 This project uses the **CORD-v2 (Consolidated Receipt Dataset v2)** from Naver Clova IX:
@@ -62,13 +76,29 @@ pip install -r requirements.txt
 
 ## Project Structure
 
-- `Reto.ipynb` - Main Jupyter notebook for the project
-- `Project_Traffic_sign_classifier.ipynb` - Reference Jupyter notebook
-- `requirements.txt` - Python package dependencies
-- `setup.sh` - Automated setup script
-- `env/` - Python virtual environment (created by setup script)
+```
+Reto_BloqueIA/
+├── TicketRecognition/          # React Native mobile app
+│   ├── App.js                  # Main app component
+│   ├── package.json            # Node.js dependencies
+│   ├── app.json                # Expo configuration
+│   └── README.md               # Mobile app documentation
+├── Reto.ipynb                  # Main Jupyter notebook
+├── Project_Traffic_sign_classifier.ipynb  # Reference notebook
+├── 06_CV_Histograms.ipynb     # Computer vision examples
+├── data_set/                   # Receipt dataset
+│   ├── images/                 # Receipt images
+│   ├── annotations.xml         # Image annotations
+│   └── receipts.csv           # Receipt metadata
+├── requirements.txt            # Python dependencies
+├── setup.sh                    # Python environment setup
+├── env/                        # Python virtual environment
+└── README.md                   # This file
+```
 
 ## Usage
+
+### Python/Machine Learning Project
 
 1. Make the setup script executable and run it:
 
@@ -92,6 +122,30 @@ pip install -r requirements.txt
    Or open it directly in VS Code.
 
 4. Start working on your project using the installed dependencies.
+
+### Mobile App (TicketRecognition)
+
+1. Navigate to the mobile app directory:
+
+   ```bash
+   cd TicketRecognition
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Start the Expo development server:
+
+   ```bash
+   npm start
+   ```
+
+4. Scan the QR code with Expo Go app or press `i`/`a` for iOS/Android simulator.
+
+For detailed mobile app instructions, see [TicketRecognition/README.md](./TicketRecognition/README.md).
 
 ## Virtual Environment
 

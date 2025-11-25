@@ -207,3 +207,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# React Native / Expo
+TicketRecognition/node_modules/
+TicketRecognition/.expo/
+TicketRecognition/.expo-shared/
+TicketRecognition/dist/
+TicketRecognition/npm-debug.*
+TicketRecognition/*.jks
+TicketRecognition/*.p8
+TicketRecognition/*.p12
+TicketRecognition/*.key
+TicketRecognition/*.mobileprovision
+TicketRecognition/*.orig.*
+TicketRecognition/web-build/
+
+# macOS
+TicketRecognition/.DS_Store
+
+# Temporary files created by Metro to check the health of the file watcher
+TicketRecognition/.metro-health-check*
