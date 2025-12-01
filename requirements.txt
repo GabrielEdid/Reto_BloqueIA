@@ -8,3 +8,8 @@ torchvision
 torchmetrics
 lightning
 datasets
+transformers
+sentencepiece
+evaluate
+jiwer
+protobuf
