@@ -1,0 +1,5 @@
+freeze_encoder: true
+learning_rate: 2.0e-05
+max_length: 768
+model_name: naver-clova-ix/donut-base
+unfreeze_last_n_layers: 2
