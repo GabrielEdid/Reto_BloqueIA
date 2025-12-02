@@ -227,3 +227,10 @@ TicketRecognition/.DS_Store
 
 # Temporary files created by Metro to check the health of the file watcher
 TicketRecognition/.metro-health-check*
+
+# Checkpoints y modelos pesados
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
