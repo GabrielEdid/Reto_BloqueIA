@@ -19,13 +19,14 @@ from datasets import load_dataset
 # Dataset sobre Hugging Face CORD-v2 (totals-only)
 # ------------------------------------------------------------
 class CORDTotalsHFDataset(Dataset):
-    def __init__(self, hf_split, processor, transform=None):
+    def __init__(self, hf_split, processor, transform=None, max_label_length: int = 32):
         """
         hf_split: dataset de Hugging Face (por ejemplo cord['train'])
         """
         self.ds = hf_split
         self.processor = processor
         self.transform = transform
+        self.max_label_length = max_label_length
 
         self.indices = []
         self.totals = []
@@ -91,7 +92,15 @@ class CORDTotalsHFDataset(Dataset):
 
         total_str = self.totals[idx]
 
-        enc = self.processor(images=image, text=total_str, return_tensors="pt")
+        # IMPORTANTE: padding/truncation a longitud fija para que el DataLoader pueda stackear
+        enc = self.processor(
+            images=image,
+            text=total_str,
+            return_tensors="pt",
+            padding="max_length",
+            max_length=self.max_label_length,
+            truncation=True,
+        )
 
         pixel_values = enc.pixel_values.squeeze(0)
         labels = enc.labels.squeeze(0)
@@ -119,6 +128,7 @@ class TotalsDataModule(L.LightningDataModule):
         num_workers=4,
         train_transform=None,
         val_transform=None,
+        max_label_length: int = 32,
     ):
         super().__init__()
         self.root = root  # se mantiene para no romper la CLI
@@ -127,6 +137,7 @@ class TotalsDataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.train_transform = train_transform
         self.val_transform = val_transform
+        self.max_label_length = max_label_length
 
     def setup(self, stage=None):
         cord = load_dataset("naver-clova-ix/cord-v2")
@@ -135,10 +146,16 @@ class TotalsDataModule(L.LightningDataModule):
         val_split = cord["validation"]
 
         self.train_ds = CORDTotalsHFDataset(
-            train_split, self.processor, transform=self.train_transform
+            train_split,
+            self.processor,
+            transform=self.train_transform,
+            max_label_length=self.max_label_length,
         )
         self.val_ds = CORDTotalsHFDataset(
-            val_split, self.processor, transform=self.val_transform
+            val_split,
+            self.processor,
+            transform=self.val_transform,
+            max_label_length=self.max_label_length,
         )
 
     def train_dataloader(self):
@@ -274,6 +291,7 @@ if __name__ == "__main__":
         num_workers=args.num_workers,
         train_transform=train_transform,
         val_transform=val_transform,
+        max_label_length=32,
     )
 
     model = TotalsTrOCRModel(lr=args.lr)
