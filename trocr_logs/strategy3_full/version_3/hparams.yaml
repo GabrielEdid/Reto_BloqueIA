@@ -1,0 +1,4 @@
+freeze_encoder: false
+learning_rate: 2.0e-05
+model_name: microsoft/trocr-base-printed
+unfreeze_last_n_layers: 0
