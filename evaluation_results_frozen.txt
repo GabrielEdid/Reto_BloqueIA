@@ -1,0 +1,110 @@
+EVALUATION RESULTS
+================================================================================
+
+Strategy: frozen
+Checkpoint: trocr_checkpoints/strategy_frozen/trocr-epoch=13-val_loss=3.7584-val_acc=0.0216.ckpt
+Total samples: 20
+Exact matches: 0/20 (0.0%)
+Avg char accuracy: 2.17%
+
+--------------------------------------------------------------------------------
+
+Sample 1:
+  GT:   901016 -TICKET CP 2 60.000 60.000 TOTAL DISC $ -60.000 TAX 5.455 Subtotal 60.000 TOTAL 60.000 (Qty 2.00 EDC CIMB NIAGA No: xx7730 60.000
+  Pred: NON NN U 1. Y. Y. YUIUT. 1. 1.
+  Char Acc: 2.9%
+
+Sample 2:
+  GT:   J.STB PROMO 17500 Y.B.BAT 46000 Y.BASO PROM 27500 TOTAL 91000 CASH 91000
+  Pred: 1, C 000, TL, C 50000 100000 100000 100000 100000 100
+  Char Acc: 5.6%
+
+Sample 3:
+  GT:   1 JASMINE MT ( L ) 24,000 COCONUT JELLY ( L ) 4,000 SUB TOTAL 28,000 TOTAL SAI S 28,000 TOTAL ITEMS 1 CASH 100,000 CHANGE 72,000
+  Pred: SARONAM, 2, 3, 3, 3LE C 50000, TL, C
+  Char Acc: 0.8%
+
+Sample 4:
+  GT:   1X @11000 DONAT GULA 11,000 1.00xITEMs SUBTOTAL 11,000 TOTAL 11,000 CASH 11,000
+  Pred: 1.48 S CHOIUT, 1. 18000, 1.ALADUSTART
+  Char Acc: 2.5%
+
+Sample 5:
+  GT:   ICE BLACKCOFFE 2 82,000 AVOCADO COFFEE 1 61,000 CHIKEN KATSU FF 1 51,000 SUB_TOTAL 194,000 DISCOUNT 19,400 TOTAL 174,600 CASH 200,000 CHANGE 25,400
+  Pred: *IG NOUST 28000* x 26000* x 56000* x 56000* x
+  Char Acc: 2.7%
+
+Sample 6:
+  GT:   TRAD KY TOAST CARTE 28.182 ITEMS 1.00 SUBTTL 28.182 PB-1 10% 2.818 TOTAL 31.000 CASH 31.000
+  Pred: 1.48 S CHOUT. 1. 8000. SUBT 33000. TOTAL.
+  Char Acc: 3.3%
+
+Sample 7:
+  GT:   1 EGG TART 13,000 2 CHOCO CUS ARD PASTRY 24,000 1 REDBEAN BREAD 9,000 TOTAL 46,000 CASH 50,000 CHANGE 4,000
+  Pred: 1.36 1RAW DON 4909090909090909090909090909
+  Char Acc: 2.8%
+
+Sample 8:
+  GT:   Kupon 15 100,000 ADD CHICKEN BOX 909 Subtotal 100,909 PB1 (10%) 10,091 Total 111,000 Cash Rp. 111,000
+  Pred: 2.00 S S CHOOT 8. 1.K GI.A.A.
+  Char Acc: 2.0%
+
+Sample 9:
+  GT:   1 [REG] BLACK SAKURA 45,455 1 COOKIE DOH SAUCES 0 1 NATA DE COCO 0 Sub Total 45,455 PB1 (10%) 4,545 Rounding 0 Total 50,000 Card Payment 50,000
+  Pred: 1,000 -IMUMHHHHHHHHHHHHHH
+  Char Acc: 0.7%
+
+Sample 10:
+  GT:   Bumbu Kaldu Ayam 1 36000 36000 Sub Total 36000 Discount (0%) Tunai 50000 Kembalian 14000
+  Pred: 1, 1000, TT, 1000 Total, Cash, Change,
+  Char Acc: 2.3%
+
+Sample 11:
+  GT:   CINNAMON SUGAR 1 x 17,000 17,000 SUB TOTAL 17,000 GRAND TOTAL 17,000 CASH IDR 20,000 CHANGE DUE 3,000
+  Pred: CNONAM SAR 17000 17000 QU CHESE 17000 17000 17000 17
+  Char Acc: 9.9%
+
+Sample 12:
+  GT:   1 BANABERRY FRESH CREAM CAK 230,000 TOTAL 230,000 CASH 230,000 CHANGE 0
+  Pred: BARRYDON W 1,. BUAT 1.AUUUUU 1
+  Char Acc: 0.0%
+
+Sample 13:
+  GT:   0571-1854 BLUS WANITA 1 @120,000 0% 120,000 1002-0060 SHOPPING BAG 1 @880 100% 0 TOTAL 120,000 (2 item) CC.Visa.BCA 120,000 Total Kembalian 0
+  Pred: KWIUN, 1.x. 10000, 1. Total,., TA AN
+  Char Acc: 0.7%
+
+Sample 14:
+  GT:   BASO KUAH 1 43.636 43.636 A.MINERAL GELAS 1 3,000 3,000 TOTAL 46.636 DPP 46.636 TAX 10.00 % 4.664 GRAND TOTAL 51.300 TUNAI 52.000 KEMBALI 700
+  Pred: 1.48 SURAEL 2.48181.18 1. RL' RLOT
+  Char Acc: 2.8%
+
+Sample 15:
+  GT:   1 RedVelvet Cheese Slc 38,000 1 Chicken Baked Rice 55,000 1 Fish n Chips 65,000 1 Mushroom Soup 35,000 1 Chamomile 25,000 1 Iced Tea 20,000 SUBTOTAL 238,000 Service 17,850 PB1 25,585 TOTAL 281,435 Coupon 100,000 CASH 200,000 Change 18,565
+  Pred: 1,.KIIAN,.KIAN,.KIAN,.K
+  Char Acc: 0.4%
+
+Sample 16:
+  GT:   1 Lemon Tea (L) 25.000 1 Caramel Small 38.000 TOTAL 63.000 CASH 70.000 CHANGED 7.000
+  Pred: 1.Z 1. 1. 1. P 1. 1. 1. 1. 1.
+  Char Acc: 1.2%
+
+Sample 17:
+  GT:   1 [LG] BLACK SAKURA 59,091 1 LONGAN 0 1 ROASTED ALMOND 0 1 IVANGGO 0 1 IVINERAL WATER (bundling) 5k 4,545 Sub Total 63,636 PB1 (10%) 6,364 Rounding 0 Total 70,000 Cash Payment 100,000 Change 30,000
+  Pred: THYIHIHIHHHHHHHHHHHHH
+  Char Acc: 0.0%
+
+Sample 18:
+  GT:   Goblin's Mace 1 25,000 Mozarella Hot Dog 2 38,000 Chili Pepper Croquette 1 14,000 Cheese Croquette 1 14,000 Plastik Amook 1 0 Plastik Putih Take Away 1 0 Subtotal 91,000 Discount (0) TOTAL Rp. 91,000 Debit 91,000
+  Pred: PARAINAMHHHHHHHHHHHHHHHH
+  Char Acc: 0.0%
+
+Sample 19:
+  GT:   Propolis Cair 1 156000 156000 Sub Tofal 156000 Tunai 156000 Kembalian Rp. 0
+  Pred: CARDAM P 1, 1, 1, 1, 1, 1, 1, 1,
+  Char Acc: 2.7%
+
+Sample 20:
+  GT:   4 AMBUSH DBL CHS 60000 10 AMBUSH CHS BUR 100000 NET SALES 160000 TAX 16000 AMOUNT DUE 176000
+  Pred: 1, C 000, TT,.%,.,.,.,.,.
+  Char Acc: 0.0%
