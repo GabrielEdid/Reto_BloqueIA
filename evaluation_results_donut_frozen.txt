@@ -1,0 +1,110 @@
+DONUT EVALUATION RESULTS
+================================================================================
+
+Strategy: frozen
+Checkpoint: donut_checkpoints/strategy_frozen/donut-epoch=17-val_loss=1.2987-val_acc=0.0287.ckpt
+Total samples: 20
+Exact matches: 0/20 (0.0%)
+Avg char accuracy: 5.19%
+
+--------------------------------------------------------------------------------
+
+Sample 1:
+  GT:   901016 -TICKET CP 2 60.000 60.000 TOTAL DISC $ -60.000 TAX 5.455 Subtotal 60.000 TOTAL 60.000 (Qty 2.00 EDC CIMB NIAGA No: xx7730 60.000
+  Pred: .ICPCTALTAL.000 TA Subtal60 545 Total60 60 TO 545 TO 5 Q 2.000.000:.000.000.000.000.000.000.000.000.000.000TAL.000.000.000.000.000MBAGA:x70"
+  Char Acc: 7.9%
+
+Sample 2:
+  GT:   J.STB PROMO 17500 Y.B.BAT 46000 Y.BASO PROM 27500 TOTAL 91000 CASH 91000
+  Pred: 1 S 1 P 1 1 S 1 P 1 1 S P 1 1 0 4 0 9 1 O 1 9 1 C"
+  Char Acc: 12.5%
+
+Sample 3:
+  GT:   1 JASMINE MT ( L ) 24,000 COCONUT JELLY ( L ) 4,000 SUB TOTAL 28,000 TOTAL SAI S 28,000 TOTAL ITEMS 1 CASH 100,000 CHANGE 72,000
+  Pred: TALTALTALTALTALTALTALTALTALTALTALTALTALTAL4,000TALTALTALTAL4,000HTALTALTAL4,000HTALTAL, CAS 100000HAN 7"
+  Char Acc: 4.7%
+
+Sample 4:
+  GT:   1X @11000 DONAT GULA 11,000 1.00xITEMs SUBTOTAL 11,000 TOTAL 11,000 CASH 11,000
+  Pred: 1 @ 1 @ 1 1 1 @ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 x STO 1 STAL1,00000TAL1,000HHHHHHHsHsHsHsHsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"s"s"s"s"s"s"s"s"s"s"s"s"s"
+  Char Acc: 2.9%
+
+Sample 5:
+  GT:   ICE BLACKCOFFE 2 82,000 AVOCADO COFFEE 1 61,000 CHIKEN KATSU FF 1 51,000 SUB_TOTAL 194,000 DISCOUNT 19,400 TOTAL 174,600 CASH 200,000 CHANGE 25,400
+  Pred: 1SSSSSSSSSSSSSSSSTAL4,000,4,000TAL4,000TAL4,000TAL60,00050,000HANHANHANHANHANHANHANHANHANHANHAN 2," STO 14,000AUSTAL4,000AUSTO 14,000ASI KSU 600000 9400HANHANHANHANHANHANHANHAN 2,"
+  Char Acc: 9.4%
+
+Sample 6:
+  GT:   TRAD KY TOAST CARTE 28.182 ITEMS 1.00 SUBTTL 28.182 PB-1 10% 2.818 TOTAL 31.000 CASH 31.000
+  Pred: DD KYASTTEASTEMS0000.82.2ITE 1. STT 28.   -1 10%18TAL CAS 31. TO 28. CAS 2818 28.28 28.28 CAS 31. 31. 31. 31."
+  Char Acc: 9.1%
+
+Sample 7:
+  GT:   1 EGG TART 13,000 2 CHOCO CUS ARD PASTRY 24,000 1 REDBEAN BREAD 9,000 TOTAL 46,000 CASH 50,000 CHANGE 4,000
+  Pred: 1GGARTGGARDTRY 3 2HO C ARDTRY 3 1REDNCADAD 2 1 TO 4 CAS  CAS  CGE6,000HAN  "
+  Char Acc: 4.7%
+
+Sample 8:
+  GT:   Kupon 15 100,000 ADD CHICKEN BOX 909 Subtotal 100,909 PB1 (10%) 10,091 Total 111,000 Cash Rp. 111,000
+  Pred: to 10090 1: (10) 10090 Total,, , , ..........................................................................................................................................................................................................................................................................................................................................................................................................................................signsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsignsign
+  Char Acc: 0.9%
+
+Sample 9:
+  GT:   1 [REG] BLACK SAKURA 45,455 1 COOKIE DOH SAUCES 0 1 NATA DE COCO 0 Sub Total 45,455 PB1 (10%) 4,545 Rounding 0 Total 50,000 Card Payment 50,000
+  Pred: [RE]BLA SARA,45 1OK DO SARA 1 N  DECO 4545 Sub 45 PB (1%), 454545 Rou 4,5    Sub          Sub           Pay        Cash"
+  Char Acc: 9.1%
+
+Sample 10:
+  GT:   Bumbu Kaldu Ayam 1 36000 36000 Sub Total 36000 Discount (0%) Tunai 50000 Kembalian 14000
+  Pred: bluyam 3 3 Sub 3 3 Dis (0) 3 Tuna 5 Keman 14 Tuna 14 5 5 Keman"
+  Char Acc: 2.3%
+
+Sample 11:
+  GT:   CINNAMON SUGAR 1 x 17,000 17,000 SUB TOTAL 17,000 GRAND TOTAL 17,000 CASH IDR 20,000 CHANGE DUE 3,000
+  Pred: NA SU 1000000000000000 17, S TO 17, GR TO 17, CAS I 17, CGEEE20,0003,000} DU}}"
+  Char Acc: 5.9%
+
+Sample 12:
+  GT:   1 BANABERRY FRESH CREAM CAK 230,000 TOTAL 230,000 CASH 230,000 CHANGE 0
+  Pred: BF FH CMAKAKAKAKAKAK 2 TO 230000HHHHHHHHHHHH 0}TALHHGE"
+  Char Acc: 1.4%
+
+Sample 13:
+  GT:   0571-1854 BLUS WANITA 1 @120,000 0% 120,000 1002-0060 SHOPPING BAG 1 @880 100% 0 TOTAL 120,000 (2 item) CC.Visa.BCA 120,000 Total Kembalian 0
+  Pred: 718154USITA 120,00020,00020,00020,000SHOINGGGGG 1BA100% TO () 1 ).000.000 Visa B 120 Totalan.000.000.000.000.000bali.000"
+  Char Acc: 7.1%
+
+Sample 14:
+  GT:   BASO KUAH 1 43.636 43.636 A.MINERAL GELAS 1 3,000 3,000 TOTAL 46.636 DPP 46.636 TAX 10.00 % 4.664 GRAND TOTAL 51.300 TUNAI 52.000 KEMBALI 700
+  Pred: KL 1.6 436 4336 4336 A 1M 1TAL 4336TAL.000TAL.000 TA 10.00 1.000.000ANDTAL.000NAINAI.000MBTAL.000.000TAL.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000.000*****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+  Char Acc: 1.4%
+
+Sample 15:
+  GT:   1 RedVelvet Cheese Slc 38,000 1 Chicken Baked Rice 55,000 1 Fish n Chips 65,000 1 Mushroom Soup 35,000 1 Chamomile 25,000 1 Iced Tea 20,000 SUBTOTAL 238,000 Service 17,850 PB1 25,585 TOTAL 281,435 Coupon 100,000 CASH 200,000 Change 18,565
+  Pred: esec 1cckenced 1ce 1ceesec 1ckenced 1ce 1ceesec 1ce 1esec 1ce 1ce STO 23 1 1.000 Redvel Che S 1ckencedc 1c 1ce 1.000 Item Subtal8  1.000 Red Cheesec cken 1ce  1 Tea5,0005,000UB 28, 14.000 Charge,5,000PB 2,5,00020,000UB 28, STO 17,50   Pa 2558 58 28, T 28    Co 100000 CAS 200 Change, 65"
+  Char Acc: 5.9%
+
+Sample 16:
+  GT:   1 Lemon Tea (L) 25.000 1 Caramel Small 38.000 TOTAL 63.000 CASH 70.000 CHANGED 7.000
+  Pred: 1mon (L 1 [same Small TO 75 CAS TO 70 CAS 70 CHAED.00000},"
+  Char Acc: 7.1%
+
+Sample 17:
+  GT:   1 [LG] BLACK SAKURA 59,091 1 LONGAN 0 1 ROASTED ALMOND 0 1 IVANGGO 0 1 IVINERAL WATER (bundling) 5k 4,545 Sub Total 63,636 PB1 (10%) 6,364 Rounding 0 Total 70,000 Cash Payment 100,000 Change 30,000
+  Pred: GN 0 ROTEDMON 1 AGO 1INE WA (ling) 5 0 1 Total,, ( 636  636  ROEDMON 1 AGO 1INE WA (ling)k, 1 Total,,,  (10 6364 0nding 70000 Cashment, Change, 100000,"
+  Char Acc: 5.6%
+
+Sample 18:
+  GT:   Goblin's Mace 1 25,000 Mozarella Hot Dog 2 38,000 Chili Pepper Croquette 1 14,000 Cheese Croquette 1 14,000 Plastik Amook 1 0 Plastik Putih Take Away 1 0 Subtotal 91,000 Discount (0) TOTAL Rp. 91,000 Debit 91,000
+  Pred: s 15,000 Motella 3 1 38 Dog 1 Chi Pe 1 1 Crotte 1 1 1 Crotte 1 Pla A 1 1 Pla Put 1 1 Takeway 1.000to 0count 9 Dis (0) 9 TO Rp De 9 De 9 ()"
+  Char Acc: 5.7%
+
+Sample 19:
+  GT:   Propolis Cair 1 156000 156000 Sub Tofal 156000 Tunai 156000 Kembalian Rp. 0
+  Pred: 15 Sub 15 15 Total 15 Tuna 15 Keman 15 Keman . 0.................................................................................................................................................................................................................................................................................................................SignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSignSign
+  Char Acc: 0.3%
+
+Sample 20:
+  GT:   4 AMBUSH DBL CHS 60000 10 AMBUSH CHS BUR 100000 NET SALES 160000 TAX 16000 AMOUNT DUE 176000
+  Pred: iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+  Char Acc: 0.0%
