@@ -222,22 +222,14 @@ class TrOCRDataModule(pl.LightningDataModule):
         self.logger = logger
         
         if use_augmentation:
+            # Minimal augmentation for OCR - avoid rotation/sharpening that hurt performance
             self.train_transform = transforms.Compose([
-                CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
-                SharpenTransform(amount=1.0),
-                transforms.RandomRotation(degrees=5, fill=255),
-                transforms.ColorJitter(brightness=0.1, contrast=0.1),
+                transforms.ColorJitter(brightness=0.05, contrast=0.05),
             ])
         else:
-            self.train_transform = transforms.Compose([
-                CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
-                SharpenTransform(amount=1.0),
-            ])
+            self.train_transform = None
         
-        self.val_transform = transforms.Compose([
-            CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
-            SharpenTransform(amount=1.0),
-        ])
+        self.val_transform = None
     
     def setup(self, stage: str = None):
         self.train_dataset = TrOCRDataset(
