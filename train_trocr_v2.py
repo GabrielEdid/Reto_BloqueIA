@@ -120,25 +120,14 @@ class TrOCRDataset(Dataset):
         
         pixel_values = self.processor(image, return_tensors="pt").pixel_values.squeeze()
         
-        # Tokenize with proper settings
-        encoding = self.processor.tokenizer(
+        # Tokenize - match original train_trocr.py (no add_special_tokens to avoid index errors)
+        labels = self.processor.tokenizer(
             text,
             padding="max_length",
             max_length=self.max_length,
             truncation=True,
-            return_tensors="pt",
-            add_special_tokens=True  # Ensure BOS/EOS tokens are added
-        )
-        labels = encoding.input_ids.squeeze()
-        
-        # Validate token IDs are within vocab range
-        vocab_size = self.processor.tokenizer.vocab_size
-        if torch.any(labels >= vocab_size) or torch.any(labels < 0):
-            if self.logger:
-                self.logger.warning(f"Invalid token IDs detected in text: {text[:100]}...")
-                self.logger.warning(f"Max token ID: {labels.max()}, Min: {labels.min()}, Vocab size: {vocab_size}")
-            # Clamp invalid tokens to pad token
-            labels = torch.clamp(labels, 0, vocab_size - 1)
+            return_tensors="pt"
+        ).input_ids.squeeze()
         
         # Replace padding tokens with -100 for loss calculation
         labels[labels == self.processor.tokenizer.pad_token_id] = -100
