@@ -323,7 +323,7 @@ class TrOCRLightningModel(pl.LightningModule):
     def __init__(
         self,
         model_name: str = "microsoft/trocr-base-printed",
-        learning_rate: float = 1e-4,
+        learning_rate: float = 3e-5,
         warmup_steps: int = 500,
         freeze_encoder: bool = True,
         unfreeze_last_n_layers: int = 0,
@@ -426,6 +426,23 @@ class TrOCRLightningModel(pl.LightningModule):
         
         return loss
     
+    def test_step(self, batch, batch_idx):
+        pixel_values = batch['pixel_values']
+        labels = batch['labels']
+        
+        outputs = self(pixel_values, labels=labels)
+        
+        # Calculate token-level accuracy
+        logits = outputs.logits
+        preds = torch.argmax(logits, dim=-1)
+        preds_flat = preds.view(-1)
+        labels_flat = labels.view(-1)
+        mask = labels_flat != -100
+        acc = (preds_flat[mask] == labels_flat[mask]).sum().float() / mask.sum() if mask.sum() > 0 else torch.tensor(0.0)
+        
+        self.log('test_acc', acc, prog_bar=True)
+        
+        return {'test_acc': acc}
     
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
@@ -487,7 +504,7 @@ def main():
     logger.info(f"  - Batch size: {args.batch_size}")
     logger.info(f"  - Gradient accumulation: {args.accumulate_grad}")
     logger.info(f"  - Effective batch size: {args.batch_size * args.accumulate_grad}")
-    logger.info(f"  - Learning rate: 1e-4")
+    logger.info(f"  - Learning rate: 3e-5")
     logger.info(f"  - GPU ID: {args.gpu_id}")
     logger.info(f"  - Max length: {args.max_length}")
     logger.info(f"  - Num workers: {args.num_workers}")
@@ -539,7 +556,7 @@ def main():
     
     lightning_model = TrOCRLightningModel(
         model_name="microsoft/trocr-base-printed",
-        learning_rate=1e-4,
+        learning_rate=3e-5,
         warmup_steps=500,
         freeze_encoder=freeze_encoder,
         unfreeze_last_n_layers=unfreeze_last_n,
