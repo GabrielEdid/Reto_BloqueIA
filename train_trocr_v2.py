@@ -255,12 +255,12 @@ class TrOCRLightningModel(pl.LightningModule):
     
     def __init__(
         self,
-        model_name: str = "microsoft/trocr-large-printed",
+        model_name: str = "microsoft/trocr-base-printed",
         learning_rate: float = 5e-5,
         warmup_ratio: float = 0.1,
         freeze_encoder: bool = False,
         unfreeze_last_n_layers: int = 0,
-        max_length: int = 768,
+        max_length: int = 512,
         logger_obj=None
     ):
         super().__init__()

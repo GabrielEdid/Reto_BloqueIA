@@ -65,7 +65,7 @@ echo "  - Batch size: 8"
 echo "  - Gradient accumulation: 4"
 echo "  - Effective batch size: 32"
 echo "  - Learning rate: 1e-5 (auto)"
-echo "  - Max length: 768"
+echo "  - Max length: 512"
 echo "  - GPU ID: $GPU_ID"
 echo "================================================================================"
 echo ""
@@ -77,7 +77,7 @@ python train_trocr_v2.py \
     --gpu_id $GPU_ID \
     --num_workers 6 \
     --accumulate_grad 4 \
-    --max_length 768 \
+    --max_length 512 \
     --model_size base
 
 if [ $? -eq 0 ]; then
@@ -110,7 +110,7 @@ echo "  - Batch size: 8"
 echo "  - Gradient accumulation: 4"
 echo "  - Effective batch size: 32"
 echo "  - Learning rate: 3e-5 (auto)"
-echo "  - Max length: 768"
+echo "  - Max length: 512"
 echo "  - GPU ID: $GPU_ID"
 echo "================================================================================"
 echo ""
@@ -122,7 +122,7 @@ python train_trocr_v2.py \
     --gpu_id $GPU_ID \
     --num_workers 6 \
     --accumulate_grad 4 \
-    --max_length 768 \
+    --max_length 512 \
     --model_size base
 
 if [ $? -eq 0 ]; then
@@ -155,7 +155,7 @@ echo "  - Batch size: 8"
 echo "  - Gradient accumulation: 4"
 echo "  - Effective batch size: 32"
 echo "  - Learning rate: 5e-5 (auto)"
-echo "  - Max length: 768"
+echo "  - Max length: 512"
 echo "  - GPU ID: $GPU_ID"
 echo "================================================================================"
 echo ""
@@ -167,7 +167,7 @@ python train_trocr_v2.py \
     --gpu_id $GPU_ID \
     --num_workers 6 \
     --accumulate_grad 4 \
-    --max_length 768 \
+    --max_length 512 \
     --model_size base
 
 if [ $? -eq 0 ]; then
