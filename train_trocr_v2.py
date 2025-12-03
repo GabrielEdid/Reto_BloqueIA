@@ -499,8 +499,8 @@ def main():
                         help="Number of dataloader workers (default: 6)")
     parser.add_argument("--accumulate_grad", type=int, default=4,
                         help="Gradient accumulation steps (default: 4)")
-    parser.add_argument("--max_length", type=int, default=768,
-                        help="Maximum sequence length (default: 768)")
+    parser.add_argument("--max_length", type=int, default=512,
+                        help="Maximum sequence length (default: 512, max for TrOCR base)")
     parser.add_argument("--model_size", type=str, default="base",
                         choices=["base", "large"],
                         help="TrOCR model size: base or large (default: base)")
