@@ -291,7 +291,7 @@ class EasyOCRLightningModel(pl.LightningModule):
         # Average accuracy for this batch
         avg_acc = sum(batch_acc) / len(batch_acc) if batch_acc else 0.0
         
-        self.log('val_acc', avg_acc, prog_bar=True, on_step=True, on_epoch=True)
+        self.log('val_acc', avg_acc, prog_bar=True, on_step=True, on_epoch=True, batch_size=len(images))
         
         return {'val_acc': avg_acc}
     
