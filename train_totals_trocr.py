@@ -1,6 +1,5 @@
 import argparse
 import json
-import os
 from pathlib import Path
 
 import torch
@@ -13,24 +12,27 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 
 from transformers import VisionEncoderDecoderModel, TrOCRProcessor
 import torchvision.transforms as T
+from datasets import load_dataset
 
 
 # ------------------------------------------------------------
-# Dataset SOLO TOTAL con data augmentation opcional
+# Dataset sobre Hugging Face CORD-v2 (no archivos locales)
 # ------------------------------------------------------------
-class CORDTotalsDataset(Dataset):
-    def __init__(self, root, split, processor, transform=None):
-        self.root = Path(root)
+class CORDTotalsHFDataset(Dataset):
+    def __init__(self, hf_split, processor, transform=None):
+        """
+        hf_split: dataset de Hugging Face (por ejemplo ds['train'])
+        """
+        self.ds = hf_split
         self.processor = processor
         self.transform = transform
 
-        ann_path = self.root / "json" / f"{split}.json"
-        with open(ann_path, "r") as f:
-            self.annotations = json.load(f)
+        self.indices = []
+        self.totals = []
 
-        self.items = []
-        for ann in self.annotations:
-            total = ann["gt_parse"].get("total", {})
+        for i, ex in enumerate(self.ds):
+            gt_parse = ex.get("gt_parse", {})
+            total = gt_parse.get("total", {})
             t = total.get("total_price", "")
             if not t:
                 continue
@@ -38,50 +40,56 @@ class CORDTotalsDataset(Dataset):
             if num is None:
                 continue
 
-            self.items.append(
-                {
-                    "image_path": self.root / "image" / ann["file_name"],
-                    "total_str": str(num),
-                }
-            )
+            self.indices.append(i)
+            self.totals.append(str(num))
+
+        print(
+            f"[CORDTotalsHFDataset] Split '{self.ds.split}' -> "
+            f"{len(self.indices)} ejemplos con total numérico válido"
+        )
 
     def _clean_number(self, s):
+        # Limpia "Rp", espacios y separadores para quedarnos con enteros
         s = s.replace("Rp", "").replace(" ", "").replace(",", "").replace(".", "")
         if not s.isdigit():
             return None
         return int(s)
 
     def __len__(self):
-        return len(self.items)
+        return len(self.indices)
 
     def __getitem__(self, idx):
-        item = self.items[idx]
-        image = Image.open(item["image_path"]).convert("RGB")
+        real_idx = self.indices[idx]
+        ex = self.ds[real_idx]
 
-        # Data augmentation (solo si hay transform definida)
+        image = ex["image"]
+        if not isinstance(image, Image.Image):
+            # Por seguridad, aunque CORD ya trae PIL
+            image = Image.fromarray(image).convert("RGB")
+        else:
+            image = image.convert("RGB")
+
         if self.transform is not None:
             image = self.transform(image)
 
-        # El processor espera PIL o tensor; si la transform da tensor, lo pasamos directo
-        if isinstance(image, torch.Tensor):
-            enc = self.processor(images=image, text=item["total_str"], return_tensors="pt")
-        else:
-            enc = self.processor(images=image, text=item["total_str"], return_tensors="pt")
+        total_str = self.totals[idx]
+
+        enc = self.processor(images=image, text=total_str, return_tensors="pt")
 
         return {
             "pixel_values": enc.pixel_values.squeeze(0),
             "labels": enc.labels.squeeze(0),
-            "total_str": item["total_str"],
+            "total_str": total_str,
         }
 
 
 # ------------------------------------------------------------
-# DataModule
+# DataModule usando Hugging Face
 # ------------------------------------------------------------
 class TotalsDataModule(L.LightningDataModule):
     def __init__(
         self,
-        root,
+        root,  # NO se usa, pero lo dejo para no romper tu CLI
         processor,
         batch_size=2,
         num_workers=4,
@@ -97,17 +105,16 @@ class TotalsDataModule(L.LightningDataModule):
         self.val_transform = val_transform
 
     def setup(self, stage=None):
-        self.train_ds = CORDTotalsDataset(
-            self.root,
-            "train",
-            self.processor,
-            transform=self.train_transform,
+        # Cargamos CORD-v2 desde Hugging Face
+        cord = load_dataset("naver-clova-ix/cord-v2", "receipt")
+        train_split = cord["train"]
+        val_split = cord["validation"]
+
+        self.train_ds = CORDTotalsHFDataset(
+            train_split, self.processor, transform=self.train_transform
         )
-        self.val_ds = CORDTotalsDataset(
-            self.root,
-            "validation",
-            self.processor,
-            transform=self.val_transform,
+        self.val_ds = CORDTotalsHFDataset(
+            val_split, self.processor, transform=self.val_transform
         )
 
     def train_dataloader(self):
@@ -141,9 +148,12 @@ class TotalsTrOCRModel(LightningModule):
             "microsoft/trocr-base-printed"
         )
 
-        # Congelamos el encoder; solo entrenamos decoder
+        # Congelamos el encoder; solo entrenamos el decoder
         for p in self.model.encoder.parameters():
             p.requires_grad = False
+
+        # Para aprovechar Tensor Cores en la 4070 Ti
+        torch.set_float32_matmul_precision("high")
 
     def forward(self, pixel_values, labels=None):
         return self.model(pixel_values=pixel_values, labels=labels)
@@ -170,8 +180,8 @@ if __name__ == "__main__":
     seed_everything(42)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=str, required=True)
-    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--root", type=str, required=True)  # solo para no romper tu comando
+    parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--batch", type=int, default=2)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--num_workers", type=int, default=4)
@@ -180,29 +190,36 @@ if __name__ == "__main__":
     processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-printed")
 
     # --------------------------------------------------------
-    # Data augmentation para tickets (entrenamiento)
+    # Data augmentation para recibos (solo train)
+    # Trabajamos con PIL, sin ToTensor (TrOCRProcessor lo maneja)
     # --------------------------------------------------------
     train_transform = T.Compose(
         [
-            T.Resize((384, 384)),  # tamaño razonable para recibos
             T.RandomApply(
-                [T.ColorJitter(brightness=0.3, contrast=0.3)],
+                [
+                    T.ColorJitter(
+                        brightness=0.3,
+                        contrast=0.3,
+                    )
+                ],
                 p=0.5,
             ),
             T.RandomApply(
-                [T.GaussianBlur(kernel_size=3)],
+                [
+                    T.GaussianBlur(kernel_size=3),
+                ],
                 p=0.3,
             ),
             T.RandomRotation(
-                degrees=3,  # pequeñas inclinaciones tipo foto de celular
+                degrees=3,
                 expand=False,
                 fill=(255, 255, 255),
             ),
         ]
     )
 
-    # En validación no conviene alterar imágenes
-    val_transform = T.Resize((384, 384))
+    # En validación no modificamos las imágenes (el processor ya hace resize/normalize)
+    val_transform = None
 
     dm = TotalsDataModule(
         root=args.root,
