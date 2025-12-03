@@ -2,7 +2,7 @@
 """
 Donut Training Script for A4500 (20GB VRAM)
 Optimized for SSH execution with detailed logging and checkpoint management
-Conservative batch size configuration: 4/4/3 for frozen/partial/full
+Conservative batch size configuration: 4/2/2 for frozen/partial/full (reduced for OOM fix)
 """
 
 import os

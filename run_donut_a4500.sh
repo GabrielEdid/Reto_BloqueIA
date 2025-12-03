@@ -3,7 +3,7 @@
 ################################################################################
 # Donut Training Runner for A4500 (20GB VRAM)
 # Sequential execution of all 3 strategies with GPU cleanup between runs
-# Conservative batch sizes: 4/4/3 for frozen/partial/full
+# Conservative batch sizes: 4/2/2 for frozen/partial/full (OOM fix: partial needs less memory)
 ################################################################################
 
 set -e  # Exit on error
@@ -100,8 +100,8 @@ echo "STRATEGY 2: Partial Unfreezing (Last 2 encoder layers + Decoder)"
 echo "================================================================================"
 echo "Configuration:"
 echo "  - Epochs: 25"
-echo "  - Batch size: 4"
-echo "  - Gradient accumulation: 8"
+echo "  - Batch size: 2 (reduced from 4 due to OOM with unfrozen layers)"
+echo "  - Gradient accumulation: 16 (increased to maintain effective batch=32)"
 echo "  - Effective batch size: 32"
 echo "  - Learning rate: 5e-5"
 echo "  - GPU ID: $GPU_ID"
@@ -111,10 +111,10 @@ echo ""
 python train_donut.py \
     --strategy partial \
     --epochs 25 \
-    --batch_size 4 \
+    --batch_size 2 \
     --gpu_id $GPU_ID \
     --num_workers 4 \
-    --accumulate_grad 8 \
+    --accumulate_grad 16 \
     --max_length 512
 
 if [ $? -eq 0 ]; then
@@ -142,8 +142,8 @@ echo "STRATEGY 3: Full Fine-tuning (Encoder + Decoder)"
 echo "================================================================================"
 echo "Configuration:"
 echo "  - Epochs: 20"
-echo "  - Batch size: 3"
-echo "  - Gradient accumulation: 8"
+echo "  - Batch size: 2 (reduced from 3 for safety)"
+echo "  - Gradient accumulation: 12 (adjusted to maintain effective batch=24)"
 echo "  - Effective batch size: 24"
 echo "  - Learning rate: 5e-5"
 echo "  - GPU ID: $GPU_ID"
@@ -153,10 +153,10 @@ echo ""
 python train_donut.py \
     --strategy full \
     --epochs 20 \
-    --batch_size 3 \
+    --batch_size 2 \
     --gpu_id $GPU_ID \
     --num_workers 4 \
-    --accumulate_grad 8 \
+    --accumulate_grad 12 \
     --max_length 512
 
 if [ $? -eq 0 ]; then
