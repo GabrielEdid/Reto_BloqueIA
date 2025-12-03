@@ -504,7 +504,7 @@ def main():
     logger.info(f"  - Batch size: {args.batch_size}")
     logger.info(f"  - Gradient accumulation: {args.accumulate_grad}")
     logger.info(f"  - Effective batch size: {args.batch_size * args.accumulate_grad}")
-    logger.info(f"  - Learning rate: 3e-5")
+    logger.info(f"  - Learning rate: 5e-5")
     logger.info(f"  - GPU ID: {args.gpu_id}")
     logger.info(f"  - Max length: {args.max_length}")
     logger.info(f"  - Num workers: {args.num_workers}")
@@ -556,7 +556,7 @@ def main():
     
     lightning_model = TrOCRLightningModel(
         model_name="microsoft/trocr-base-printed",
-        learning_rate=3e-5,
+        learning_rate=5e-5,
         warmup_steps=500,
         freeze_encoder=freeze_encoder,
         unfreeze_last_n_layers=unfreeze_last_n,
@@ -577,7 +577,7 @@ def main():
     
     early_stop_callback = EarlyStopping(
         monitor='val_loss',
-        patience=5,
+        patience=10,
         mode='min',
         verbose=True
     )
