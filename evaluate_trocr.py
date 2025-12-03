@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-TrOCR Model Evaluation Script
-Visualizes predictions vs ground truth to diagnose training issues
+TrOCR Model Evaluation Script (v2)
+Visualizes predictions vs ground truth with improved generation parameters
+Uses: max_length=768, beam_search=4, no_repeat_ngram_size=3
 """
 
 import os
@@ -39,7 +40,7 @@ class TrOCREvaluator:
         self.processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-printed")
         
         # Load model from checkpoint
-        from train_trocr import TrOCRLightningModel
+        from train_trocr_v2 import TrOCRLightningModel
         model = TrOCRLightningModel.load_from_checkpoint(
             checkpoint_path,
             learning_rate=3e-5
@@ -85,7 +86,7 @@ class TrOCREvaluator:
         return samples
     
     @torch.no_grad()
-    def predict(self, image: Image.Image) -> str:
+    def predict(self, image: Image.Image, max_length: int = 768) -> str:
         """Generate prediction for a single image"""
         # Preprocess image
         pixel_values = self.processor(
@@ -93,44 +94,21 @@ class TrOCREvaluator:
             return_tensors="pt"
         ).pixel_values.to(self.device)
         
-        # Generate text
-        generated_ids = self.model.generate(pixel_values)
+        # Generate text with proper parameters
+        generated_ids = self.model.generate(
+            pixel_values,
+            max_length=max_length,
+            num_beams=4,
+            early_stopping=True,
+            no_repeat_ngram_size=3,
+            length_penalty=2.0
+        )
         generated_text = self.processor.batch_decode(
             generated_ids,
             skip_special_tokens=True
         )[0]
         
         return generated_text
-    
-    def evaluate_samples(self, samples: List[Dict]) -> List[Dict]:
-        """Evaluate multiple samples and return results"""
-        results = []
-        
-        logger.info("Generating predictions...")
-        for i, sample in enumerate(tqdm(samples, desc="Evaluating")):
-            # Get prediction
-            prediction = self.predict(sample['image'])
-            ground_truth = self.extract_text_from_ground_truth(sample['ground_truth'])
-            
-            # Calculate character-level accuracy
-            char_match = sum(1 for p, g in zip(prediction, ground_truth) if p == g)
-            max_len = max(len(prediction), len(ground_truth))
-            char_accuracy = (char_match / max_len * 100) if max_len > 0 else 0.0
-            
-            # Exact match
-            exact_match = (prediction == ground_truth)
-            
-            results.append({
-                'index': i,
-                'prediction': prediction,
-                'ground_truth': ground_truth,
-                'char_accuracy': char_accuracy,
-                'exact_match': exact_match,
-                'pred_len': len(prediction),
-                'gt_len': len(ground_truth)
-            })
-        
-        return results
     
     def print_results(self, results: List[Dict]):
         """Print evaluation results in a readable format"""
@@ -182,7 +160,7 @@ class TrOCREvaluator:
         print("="*80)
         
         for i, sample in enumerate(samples[:num_show]):
-            gt = sample['ground_truth']
+            gt = self.extract_text_from_ground_truth(sample['ground_truth'])
             
             # Tokenize
             tokens = self.processor.tokenizer(
@@ -190,7 +168,7 @@ class TrOCREvaluator:
                 return_tensors="pt",
                 padding=False,
                 truncation=True,
-                max_length=512
+                max_length=768
             )
             
             # Decode back
@@ -222,14 +200,27 @@ def main():
         "--strategy",
         type=str,
         choices=["frozen", "partial", "full"],
-        default="frozen",
-        help="Which training strategy to evaluate"
+        default="full",
+        help="Which training strategy to evaluate (default: full)"
+    )
+    parser.add_argument(
+        "--model_size",
+        type=str,
+        choices=["base", "large"],
+        default="large",
+        help="Model size to evaluate (default: large)"
     )
     parser.add_argument(
         "--samples",
         type=int,
-        default=20,
-        help="Number of test samples to evaluate"
+        default=50,
+        help="Number of test samples to evaluate (default: 50)"
+    )
+    parser.add_argument(
+        "--max_length",
+        type=int,
+        default=768,
+        help="Maximum generation length (default: 768)"
     )
     parser.add_argument(
         "--device",
@@ -242,6 +233,12 @@ def main():
         action="store_true",
         help="Also analyze tokenization of ground truth"
     )
+    parser.add_argument(
+        "--checkpoint_version",
+        type=str,
+        default="v3",
+        help="Checkpoint version (v2 or v3, default: v3)"
+    )
     
     args = parser.parse_args()
     
@@ -250,31 +247,48 @@ def main():
         checkpoint_path = args.checkpoint
     else:
         # Find best checkpoint for strategy
-        ckpt_dir = f"./trocr_checkpoints/strategy_{args.strategy}"
+        ckpt_dir = f"./trocr_checkpoints_{args.checkpoint_version}/strategy_{args.strategy}_{args.model_size}"
         if not os.path.exists(ckpt_dir):
             logger.error(f"Checkpoint directory not found: {ckpt_dir}")
+            logger.info(f"Available checkpoint directories:")
+            base_dir = f"./trocr_checkpoints_{args.checkpoint_version}"
+            if os.path.exists(base_dir):
+                for d in os.listdir(base_dir):
+                    logger.info(f"  - {d}")
             sys.exit(1)
         
-        # Find checkpoint with lowest val_loss
+        # Find checkpoint with lowest val_cer (or val_loss for older checkpoints)
         checkpoints = list(Path(ckpt_dir).glob("*.ckpt"))
         if not checkpoints:
             logger.error(f"No checkpoints found in {ckpt_dir}")
             sys.exit(1)
         
-        # Parse val_loss from filename
+        # Parse val_cer from filename (prioritize CER over loss)
         best_ckpt = None
-        best_loss = float('inf')
+        best_metric = float('inf')
+        metric_name = 'val_cer'
+        
         for ckpt in checkpoints:
             try:
-                # Format: trocr-epoch=XX-val_loss=X.XXXX-val_acc=X.XXXX.ckpt
+                # Format: trocr-epoch=XX-val_loss=X.XXXX-val_cer=X.XXXX.ckpt
                 parts = ckpt.stem.split('-')
                 for part in parts:
-                    if part.startswith('val_loss='):
-                        loss = float(part.split('=')[1])
-                        if loss < best_loss:
-                            best_loss = loss
+                    if part.startswith('val_cer='):
+                        metric = float(part.split('=')[1])
+                        if metric < best_metric:
+                            best_metric = metric
                             best_ckpt = ckpt
                         break
+                else:
+                    # Fallback to val_loss if val_cer not found
+                    for part in parts:
+                        if part.startswith('val_loss='):
+                            metric = float(part.split('=')[1])
+                            if metric < best_metric:
+                                best_metric = metric
+                                best_ckpt = ckpt
+                                metric_name = 'val_loss'
+                            break
             except:
                 continue
         
@@ -283,7 +297,7 @@ def main():
             sys.exit(1)
         
         checkpoint_path = str(best_ckpt)
-        logger.info(f"Using best checkpoint: {best_ckpt.name} (val_loss={best_loss:.4f})")
+        logger.info(f"Using best checkpoint: {best_ckpt.name} ({metric_name}={best_metric:.4f})")
     
     # Initialize evaluator
     evaluator = TrOCREvaluator(checkpoint_path, device=args.device)
@@ -295,14 +309,36 @@ def main():
     if args.analyze_tokens:
         evaluator.analyze_tokenization(samples)
     
-    # Evaluate
-    results = evaluator.evaluate_samples(samples)
+    # Evaluate with proper max_length
+    logger.info(f"Generating predictions with max_length={args.max_length}, beam_search=4...")
+    results = []
+    for i, sample in enumerate(samples):
+        pred = evaluator.predict(sample['image'], max_length=args.max_length)
+        gt = evaluator.extract_text_from_ground_truth(sample['ground_truth'])
+        
+        char_match = sum(1 for p, g in zip(pred, gt) if p == g)
+        max_len = max(len(pred), len(gt))
+        char_accuracy = (char_match / max_len * 100) if max_len > 0 else 0.0
+        exact_match = (pred == gt)
+        
+        results.append({
+            'index': i,
+            'prediction': pred,
+            'ground_truth': gt,
+            'char_accuracy': char_accuracy,
+            'exact_match': exact_match,
+            'pred_len': len(pred),
+            'gt_len': len(gt)
+        })
+        
+        if (i + 1) % 10 == 0:
+            logger.info(f"Processed {i + 1}/{len(samples)} samples")
     
     # Print results
     evaluator.print_results(results)
     
     # Save results to file
-    output_file = f"evaluation_results_{args.strategy}.txt"
+    output_file = f"evaluation_results_{args.strategy}_{args.model_size}_{args.checkpoint_version}.txt"
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("EVALUATION RESULTS\n")
         f.write("="*80 + "\n\n")
@@ -312,6 +348,7 @@ def main():
         avg_char_acc = sum(r['char_accuracy'] for r in results) / total_samples
         
         f.write(f"Strategy: {args.strategy}\n")
+        f.write(f"Model size: {args.model_size}\n")
         f.write(f"Checkpoint: {checkpoint_path}\n")
         f.write(f"Total samples: {total_samples}\n")
         f.write(f"Exact matches: {exact_matches}/{total_samples} ({exact_matches/total_samples*100:.1f}%)\n")
