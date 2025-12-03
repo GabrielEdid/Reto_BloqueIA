@@ -15,3 +15,4 @@ jiwer
 python-Levenshtein
 easyocr
 protobuf
+pytesseract
