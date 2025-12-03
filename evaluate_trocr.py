@@ -7,6 +7,7 @@ Visualizes predictions vs ground truth to diagnose training issues
 import os
 import sys
 import argparse
+import json
 import logging
 from pathlib import Path
 from typing import List, Dict, Tuple
@@ -47,6 +48,24 @@ class TrOCREvaluator:
         self.model.eval()
         
         logger.info("Model loaded successfully")
+    
+    def extract_text_from_ground_truth(self, ground_truth_str: str) -> str:
+        """Extract all text from CORD ground truth JSON (same as training)."""
+        try:
+            gt_dict = json.loads(ground_truth_str)
+            
+            text_lines = []
+            if 'valid_line' in gt_dict:
+                for line in gt_dict['valid_line']:
+                    if 'words' in line:
+                        for word in line['words']:
+                            if 'text' in word:
+                                text_lines.append(word['text'])
+            
+            full_text = ' '.join(text_lines)
+            return full_text.strip()
+        except:
+            return ""
     
     def load_test_data(self, num_samples: int = 20) -> List[Dict]:
         """Load test samples from CORD-v2 dataset"""
@@ -91,7 +110,7 @@ class TrOCREvaluator:
         for i, sample in enumerate(tqdm(samples, desc="Evaluating")):
             # Get prediction
             prediction = self.predict(sample['image'])
-            ground_truth = sample['ground_truth']
+            ground_truth = self.extract_text_from_ground_truth(sample['ground_truth'])
             
             # Calculate character-level accuracy
             char_match = sum(1 for p, g in zip(prediction, ground_truth) if p == g)
