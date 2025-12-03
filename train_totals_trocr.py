@@ -44,7 +44,6 @@ class CORDTotalsHFDataset(Dataset):
             total = gt_parse.get("total", {})
 
             if not isinstance(total, dict):
-                # a veces puede ser string, pero aquí solo nos interesa dict
                 continue
 
             raw_total = str(total.get("total_price", "")).strip()
@@ -56,7 +55,6 @@ class CORDTotalsHFDataset(Dataset):
                 continue
 
             self.indices.append(i)
-            # lo guardamos como string de dígitos (sin símbolos)
             self.totals.append(str(num))
 
         print(
@@ -91,12 +89,16 @@ class CORDTotalsHFDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        total_str = self.totals[idx]  # etiqueta: "45500", "120000", etc.
+        total_str = self.totals[idx]
 
         enc = self.processor(images=image, text=total_str, return_tensors="pt")
 
         pixel_values = enc.pixel_values.squeeze(0)
         labels = enc.labels.squeeze(0)
+
+        pad_id = self.processor.tokenizer.pad_token_id
+        if pad_id is not None:
+            labels[labels == pad_id] = -100
 
         return {
             "pixel_values": pixel_values,
@@ -111,7 +113,7 @@ class CORDTotalsHFDataset(Dataset):
 class TotalsDataModule(L.LightningDataModule):
     def __init__(
         self,
-        root,  # se queda para no romper la CLI, pero no se usa
+        root,
         processor,
         batch_size=2,
         num_workers=4,
@@ -119,7 +121,7 @@ class TotalsDataModule(L.LightningDataModule):
         val_transform=None,
     ):
         super().__init__()
-        self.root = root
+        self.root = root  # se mantiene para no romper la CLI
         self.processor = processor
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -127,7 +129,6 @@ class TotalsDataModule(L.LightningDataModule):
         self.val_transform = val_transform
 
     def setup(self, stage=None):
-        # Cargamos CORD-v2 desde Hugging Face (config por defecto)
         cord = load_dataset("naver-clova-ix/cord-v2")
 
         train_split = cord["train"]
@@ -164,6 +165,7 @@ class TotalsTrOCRModel(LightningModule):
     def __init__(self, lr=3e-5):
         super().__init__()
         self.save_hyperparameters()
+
         self.model = VisionEncoderDecoderModel.from_pretrained(
             "microsoft/trocr-base-printed"
         )
@@ -171,11 +173,31 @@ class TotalsTrOCRModel(LightningModule):
             "microsoft/trocr-base-printed"
         )
 
+        tokenizer = self.processor.tokenizer
+        config = self.model.config
+
+        # Aseguramos pad_token_id
+        if config.pad_token_id is None and tokenizer.pad_token_id is not None:
+            config.pad_token_id = tokenizer.pad_token_id
+
+        # Aseguramos decoder_start_token_id
+        if config.decoder_start_token_id is None:
+            if getattr(tokenizer, "bos_token_id", None) is not None:
+                config.decoder_start_token_id = tokenizer.bos_token_id
+            elif getattr(tokenizer, "cls_token_id", None) is not None:
+                config.decoder_start_token_id = tokenizer.cls_token_id
+
+        # Aseguramos eos_token_id
+        if config.eos_token_id is None:
+            if getattr(tokenizer, "eos_token_id", None) is not None:
+                config.eos_token_id = tokenizer.eos_token_id
+            elif getattr(tokenizer, "sep_token_id", None) is not None:
+                config.eos_token_id = tokenizer.sep_token_id
+
         # Congelamos el encoder; solo entrenamos el decoder
         for p in self.model.encoder.parameters():
             p.requires_grad = False
 
-        # Aprovechar Tensor Cores en la 4070 Ti
         torch.set_float32_matmul_precision("high")
 
     def forward(self, pixel_values, labels=None):
@@ -209,7 +231,7 @@ if __name__ == "__main__":
     seed_everything(42)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=str, required=True)  # no se usa, pero se mantiene
+    parser.add_argument("--root", type=str, required=True)
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--batch", type=int, default=2)
     parser.add_argument("--lr", type=float, default=3e-5)
@@ -218,9 +240,6 @@ if __name__ == "__main__":
 
     processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-printed")
 
-    # --------------------------------------------------------
-    # Data augmentation (solo train)
-    # --------------------------------------------------------
     train_transform = T.Compose(
         [
             T.RandomApply(
@@ -246,7 +265,6 @@ if __name__ == "__main__":
         ]
     )
 
-    # En validación no modificamos las imágenes
     val_transform = None
 
     dm = TotalsDataModule(
