@@ -37,8 +37,8 @@ fi
 
 # Create necessary directories
 mkdir -p ./logs
-mkdir -p ./donut_checkpoints
-mkdir -p ./donut_logs
+mkdir -p ./donut_checkpoints_v2
+mkdir -p ./donut_logs_v2
 
 # GPU Configuration
 GPU_ID=0
@@ -61,7 +61,7 @@ echo "  - Epochs: 30"
 echo "  - Batch size: 4"
 echo "  - Gradient accumulation: 8"
 echo "  - Effective batch size: 32"
-echo "  - Learning rate: 5e-5"
+echo "  - Learning rate: 2e-5"
 echo "  - GPU ID: $GPU_ID"
 echo "================================================================================"
 echo ""
@@ -73,7 +73,7 @@ python train_donut.py \
     --gpu_id $GPU_ID \
     --num_workers 4 \
     --accumulate_grad 8 \
-    --max_length 512
+    --max_length 256
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -103,7 +103,7 @@ echo "  - Epochs: 25"
 echo "  - Batch size: 2 (reduced from 4 due to OOM with unfrozen layers)"
 echo "  - Gradient accumulation: 16 (increased to maintain effective batch=32)"
 echo "  - Effective batch size: 32"
-echo "  - Learning rate: 5e-5"
+echo "  - Learning rate: 2e-5"
 echo "  - GPU ID: $GPU_ID"
 echo "================================================================================"
 echo ""
@@ -115,7 +115,7 @@ python train_donut.py \
     --gpu_id $GPU_ID \
     --num_workers 4 \
     --accumulate_grad 16 \
-    --max_length 512
+    --max_length 256
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -145,7 +145,7 @@ echo "  - Epochs: 20"
 echo "  - Batch size: 2 (reduced from 3 for safety)"
 echo "  - Gradient accumulation: 12 (adjusted to maintain effective batch=24)"
 echo "  - Effective batch size: 24"
-echo "  - Learning rate: 5e-5"
+echo "  - Learning rate: 2e-5"
 echo "  - GPU ID: $GPU_ID"
 echo "================================================================================"
 echo ""
@@ -157,7 +157,7 @@ python train_donut.py \
     --gpu_id $GPU_ID \
     --num_workers 4 \
     --accumulate_grad 12 \
-    --max_length 512
+    --max_length 256
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -179,14 +179,14 @@ echo "==========================================================================
 echo "End time: $(date)"
 echo ""
 echo "Results:"
-echo "  - Checkpoints: ./donut_checkpoints/"
-echo "  - Logs: ./donut_logs/"
+echo "  - Checkpoints: ./donut_checkpoints_v2/"
+echo "  - Logs: ./donut_logs_v2/"
 echo "  - Detailed logs: ./logs/donut_*.log"
 echo ""
 echo "Best models (top 3 per strategy):"
-echo "  Strategy 1 (frozen):  ./donut_checkpoints/strategy_frozen/"
-echo "  Strategy 2 (partial): ./donut_checkpoints/strategy_partial/"
-echo "  Strategy 3 (full):    ./donut_checkpoints/strategy_full/"
+echo "  Strategy 1 (frozen):  ./donut_checkpoints_v2/strategy_frozen/"
+echo "  Strategy 2 (partial): ./donut_checkpoints_v2/strategy_partial/"
+echo "  Strategy 3 (full):    ./donut_checkpoints_v2/strategy_full/"
 echo ""
 echo "To view training progress:"
 echo "  cat ./logs/donut_frozen_*.log"
@@ -194,8 +194,8 @@ echo "  cat ./logs/donut_partial_*.log"
 echo "  cat ./logs/donut_full_*.log"
 echo ""
 echo "To view metrics:"
-echo "  cat ./donut_logs/strategy_frozen/version_*/metrics.csv"
-echo "  cat ./donut_logs/strategy_partial/version_*/metrics.csv"
-echo "  cat ./donut_logs/strategy_full/version_*/metrics.csv"
+echo "  cat ./donut_logs_v2/strategy_frozen/version_*/metrics.csv"
+echo "  cat ./donut_logs_v2/strategy_partial/version_*/metrics.csv"
+echo "  cat ./donut_logs_v2/strategy_full/version_*/metrics.csv"
 echo ""
 echo "================================================================================"

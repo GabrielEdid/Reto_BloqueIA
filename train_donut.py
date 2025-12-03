@@ -322,7 +322,7 @@ class DonutLightningModel(pl.LightningModule):
     def __init__(
         self,
         model_name: str = "naver-clova-ix/donut-base",
-        learning_rate: float = 5e-5,
+        learning_rate: float = 2e-5,
         warmup_steps: int = 500,
         freeze_encoder: bool = True,
         unfreeze_last_n_layers: int = 0,
@@ -575,7 +575,7 @@ def main():
     
     lightning_model = DonutLightningModel(
         model_name="naver-clova-ix/donut-base",
-        learning_rate=5e-5,
+        learning_rate=2e-5,
         warmup_steps=500,
         freeze_encoder=freeze_encoder,
         unfreeze_last_n_layers=unfreeze_last_n,
@@ -584,7 +584,7 @@ def main():
     )
     
     # Setup callbacks
-    checkpoint_dir = f"./donut_checkpoints/strategy_{args.strategy}"
+    checkpoint_dir = f"./donut_checkpoints_v2/strategy_{args.strategy}"
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
         filename='donut-{epoch:02d}-{val_loss:.4f}-{val_acc:.4f}',
@@ -597,7 +597,7 @@ def main():
     
     early_stop_callback = EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=5,
         mode='min',
         verbose=True
     )

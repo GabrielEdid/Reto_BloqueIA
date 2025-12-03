@@ -12,4 +12,6 @@ transformers
 sentencepiece
 evaluate
 jiwer
+python-Levenshtein
+easyocr
 protobuf
