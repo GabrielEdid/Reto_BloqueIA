@@ -59,7 +59,7 @@ echo "==========================================================================
 echo "STRATEGY 1: Full Fine-tuning (Encoder + Decoder) - RECOMMENDED"
 echo "================================================================================"
 echo "Configuration:"
-echo "  - Model: TrOCR-large"
+echo "  - Model: TrOCR-base"
 echo "  - Epochs: 50"
 echo "  - Batch size: 8"
 echo "  - Gradient accumulation: 4"
@@ -78,7 +78,7 @@ python train_trocr_v2.py \
     --num_workers 6 \
     --accumulate_grad 4 \
     --max_length 768 \
-    --model_size large
+    --model_size base
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -104,7 +104,7 @@ echo "==========================================================================
 echo "STRATEGY 2: Partial Unfreezing (Last 6 encoder layers + Decoder)"
 echo "================================================================================"
 echo "Configuration:"
-echo "  - Model: TrOCR-large"
+echo "  - Model: TrOCR-base"
 echo "  - Epochs: 40"
 echo "  - Batch size: 8"
 echo "  - Gradient accumulation: 4"
@@ -123,7 +123,7 @@ python train_trocr_v2.py \
     --num_workers 6 \
     --accumulate_grad 4 \
     --max_length 768 \
-    --model_size large
+    --model_size base
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -149,7 +149,7 @@ echo "==========================================================================
 echo "STRATEGY 3: Frozen Encoder (Decoder-only training)"
 echo "================================================================================"
 echo "Configuration:"
-echo "  - Model: TrOCR-large"
+echo "  - Model: TrOCR-base"
 echo "  - Epochs: 60"
 echo "  - Batch size: 8"
 echo "  - Gradient accumulation: 4"
@@ -168,7 +168,7 @@ python train_trocr_v2.py \
     --num_workers 6 \
     --accumulate_grad 4 \
     --max_length 768 \
-    --model_size large
+    --model_size base
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -195,9 +195,9 @@ echo "  - Logs: ./trocr_logs_v3/"
 echo "  - Detailed logs: ./logs/trocr_*.log"
 echo ""
 echo "Best models (top 3 per strategy):"
-echo "  Strategy 1 (full):    ./trocr_checkpoints_v3/strategy_full_large/"
-echo "  Strategy 2 (partial): ./trocr_checkpoints_v3/strategy_partial_large/"
-echo "  Strategy 3 (frozen):  ./trocr_checkpoints_v3/strategy_frozen_large/"
+echo "  Strategy 1 (full):    ./trocr_checkpoints_v3/strategy_full_base/"
+echo "  Strategy 2 (partial): ./trocr_checkpoints_v3/strategy_partial_base/"
+echo "  Strategy 3 (frozen):  ./trocr_checkpoints_v3/strategy_frozen_base/"
 echo ""
 echo "To view training progress:"
 echo "  cat ./logs/trocr_full_*.log"
@@ -205,9 +205,9 @@ echo "  cat ./logs/trocr_partial_*.log"
 echo "  cat ./logs/trocr_frozen_*.log"
 echo ""
 echo "To view metrics:"
-echo "  cat ./trocr_logs_v3/strategy_full_large/version_*/metrics.csv"
-echo "  cat ./trocr_logs_v3/strategy_partial_large/version_*/metrics.csv"
-echo "  cat ./trocr_logs_v3/strategy_frozen_large/version_*/metrics.csv"
+echo "  cat ./trocr_logs_v3/strategy_full_base/version_*/metrics.csv"
+echo "  cat ./trocr_logs_v3/strategy_partial_base/version_*/metrics.csv"
+echo "  cat ./trocr_logs_v3/strategy_frozen_base/version_*/metrics.csv"
 echo ""
 echo "RECOMMENDATION: Start with Strategy 1 (full fine-tuning) for best results"
 echo "================================================================================"

@@ -499,9 +499,9 @@ def main():
                         help="Gradient accumulation steps (default: 4)")
     parser.add_argument("--max_length", type=int, default=768,
                         help="Maximum sequence length (default: 768)")
-    parser.add_argument("--model_size", type=str, default="large",
+    parser.add_argument("--model_size", type=str, default="base",
                         choices=["base", "large"],
-                        help="TrOCR model size: base or large (default: large)")
+                        help="TrOCR model size: base or large (default: base)")
     parser.add_argument("--learning_rate", type=float, default=None,
                         help="Learning rate (default: auto based on strategy)")
     
