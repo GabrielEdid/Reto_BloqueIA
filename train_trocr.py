@@ -1,36 +1,59 @@
 #!/usr/bin/env python3
 """
-TrOCR Training Script for CORD-v2 Receipt OCR
-Trains TrOCR models with three fine-tuning strategies.
+TrOCR Training Script for RTX 4070 Ti (12GB VRAM)
+Optimized for SSH execution with detailed logging and checkpoint management
+Conservative batch size configuration: 2/2/2 for frozen/partial/full
 """
 
 import os
-import glob
+import argparse
+import logging
 import json
 from typing import Callable, Optional, Dict
+from datetime import datetime
+from pathlib import Path
 import numpy as np
 import cv2
 from PIL import Image
 
 import torch
-import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-import torchvision
 from torchvision import transforms
 
 import torchmetrics
 
-import lightning as L
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+import lightning.pytorch as pl
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from lightning.pytorch.loggers import CSVLogger
 
 from datasets import load_dataset
 
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel, get_cosine_schedule_with_warmup
 
-import evaluate
+
+# ==========================
+# Logging Setup
+# ==========================
+
+def setup_logging(strategy_name):
+    """Configure detailed logging to file and console"""
+    log_dir = Path("./logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"trocr_{strategy_name}_{timestamp}.log"
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+    
+    return logging.getLogger(__name__)
 
 
 # ==========================
@@ -115,13 +138,16 @@ class TrOCRDataset(Dataset):
         processor,
         image_transform: Optional[Callable] = None,
         max_length: int = 512,
+        logger=None
     ):
         self.hf_dataset = hf_dataset
         self.processor = processor
         self.image_transform = image_transform
         self.max_length = max_length
+        self.logger = logger
         
-        print(f"TrOCRDataset initialized with {len(self.hf_dataset)} samples")
+        if self.logger:
+            self.logger.info(f"TrOCRDataset initialized with {len(self.hf_dataset)} samples")
     
     def __len__(self) -> int:
         return len(self.hf_dataset)
@@ -173,30 +199,40 @@ class TrOCRDataset(Dataset):
         }
 
 
-class TrOCRDataModule(L.LightningDataModule):
+class TrOCRDataModule(pl.LightningDataModule):
     """DataModule for TrOCR training with CORD-v2 dataset."""
     
     def __init__(
         self,
         hf_dataset,
         processor,
-        batch_size: int = 1,
-        num_workers: int = 0,
+        batch_size: int = 2,
+        num_workers: int = 4,
+        max_length: int = 512,
         use_augmentation: bool = True,
+        logger=None
     ):
         super().__init__()
         self.hf_dataset = hf_dataset
         self.processor = processor
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.max_length = max_length
         self.use_augmentation = use_augmentation
+        self.logger = logger
         
-        self.train_transform = transforms.Compose([
-            CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
-            SharpenTransform(amount=1.0),
-            transforms.RandomRotation(degrees=5, fill=255) if use_augmentation else transforms.Lambda(lambda x: x),
-            transforms.ColorJitter(brightness=0.1, contrast=0.1) if use_augmentation else transforms.Lambda(lambda x: x),
-        ])
+        if use_augmentation:
+            self.train_transform = transforms.Compose([
+                CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
+                SharpenTransform(amount=1.0),
+                transforms.RandomRotation(degrees=5, fill=255),
+                transforms.ColorJitter(brightness=0.1, contrast=0.1),
+            ])
+        else:
+            self.train_transform = transforms.Compose([
+                CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
+                SharpenTransform(amount=1.0),
+            ])
         
         self.val_transform = transforms.Compose([
             CLAHETransform(clip_limit=2.0, tile_grid_size=(8, 8)),
@@ -208,22 +244,29 @@ class TrOCRDataModule(L.LightningDataModule):
             hf_dataset=self.hf_dataset['train'],
             processor=self.processor,
             image_transform=self.train_transform,
+            max_length=self.max_length,
+            logger=self.logger
         )
         
         self.val_dataset = TrOCRDataset(
             hf_dataset=self.hf_dataset['validation'],
             processor=self.processor,
             image_transform=self.val_transform,
+            max_length=self.max_length,
+            logger=self.logger
         )
         
         self.test_dataset = TrOCRDataset(
             hf_dataset=self.hf_dataset['test'],
             processor=self.processor,
             image_transform=self.val_transform,
+            max_length=self.max_length,
+            logger=self.logger
         )
         
-        print(f"TrOCRDataModule Train: {len(self.train_dataset)}, "
-              f"Val: {len(self.val_dataset)}, Test: {len(self.test_dataset)}")
+        if self.logger:
+            self.logger.info(f"DataModule setup - Train: {len(self.train_dataset)}, "
+                           f"Val: {len(self.val_dataset)}, Test: {len(self.test_dataset)}")
     
     def train_dataloader(self):
         return DataLoader(
@@ -231,6 +274,8 @@ class TrOCRDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
+            pin_memory=True,
+            persistent_workers=True if self.num_workers > 0 else False,
             collate_fn=self.collate_fn,
         )
     
@@ -240,6 +285,8 @@ class TrOCRDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
+            pin_memory=True,
+            persistent_workers=True if self.num_workers > 0 else False,
             collate_fn=self.collate_fn,
         )
     
@@ -249,6 +296,7 @@ class TrOCRDataModule(L.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
+            pin_memory=True,
             collate_fn=self.collate_fn,
         )
     
@@ -269,18 +317,21 @@ class TrOCRDataModule(L.LightningDataModule):
 # Model Class
 # ==========================
 
-class TrOCRLightningModel(L.LightningModule):
+class TrOCRLightningModel(pl.LightningModule):
     """TrOCR model with PyTorch Lightning for OCR on receipts."""
     
     def __init__(
         self,
         model_name: str = "microsoft/trocr-base-printed",
-        learning_rate: float = 5e-5,
+        learning_rate: float = 1e-4,
+        warmup_steps: int = 500,
         freeze_encoder: bool = True,
         unfreeze_last_n_layers: int = 0,
+        logger_obj=None
     ):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['logger_obj'])
+        self.logger_obj = logger_obj
         
         self.model = VisionEncoderDecoderModel.from_pretrained(model_name)
         self.processor = TrOCRProcessor.from_pretrained(model_name)
@@ -291,35 +342,47 @@ class TrOCRLightningModel(L.LightningModule):
         
         self._apply_freezing_strategy(freeze_encoder, unfreeze_last_n_layers)
         
-        self.cer_metric = evaluate.load("cer")
-        self.wer_metric = evaluate.load("wer")
-        
-        self.train_acc = torchmetrics.MeanMetric()
-        self.val_acc = torchmetrics.MeanMetric()
+        # Token-level accuracy metric
+        vocab_size = len(self.processor.tokenizer)
+        self.train_acc = torchmetrics.Accuracy(
+            task="multiclass",
+            num_classes=vocab_size,
+            ignore_index=-100
+        )
+        self.val_acc = torchmetrics.Accuracy(
+            task="multiclass",
+            num_classes=vocab_size,
+            ignore_index=-100
+        )
         
     def _apply_freezing_strategy(self, freeze_encoder: bool, unfreeze_last_n_layers: int):
         if freeze_encoder:
             for param in self.model.encoder.parameters():
                 param.requires_grad = False
-            print("Encoder frozen (transfer learning mode)")
+            
+            if self.logger_obj:
+                self.logger_obj.info("Encoder frozen (transfer learning mode)")
             
             if unfreeze_last_n_layers > 0:
                 encoder_layers = self.model.encoder.encoder.layer
                 for layer in encoder_layers[-unfreeze_last_n_layers:]:
                     for param in layer.parameters():
                         param.requires_grad = True
-                print(f"Unfroze last {unfreeze_last_n_layers} encoder layers")
+                if self.logger_obj:
+                    self.logger_obj.info(f"Unfroze last {unfreeze_last_n_layers} encoder layers")
         else:
-            print("Encoder unfrozen (full fine-tuning mode)")
+            if self.logger_obj:
+                self.logger_obj.info("Encoder unfrozen (full fine-tuning mode)")
         
         for param in self.model.decoder.parameters():
             param.requires_grad = True
-        print("Decoder trainable")
         
         total_params = sum(p.numel() for p in self.model.parameters())
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"Trainable parameters: {trainable_params:,} / {total_params:,} "
-              f"({100 * trainable_params / total_params:.2f}%)")
+        
+        if self.logger_obj:
+            self.logger_obj.info(f"Trainable parameters: {trainable_params:,} / {total_params:,} "
+                               f"({100 * trainable_params / total_params:.2f}%)")
     
     def forward(self, pixel_values, labels=None):
         return self.model(pixel_values=pixel_values, labels=labels)
@@ -331,20 +394,17 @@ class TrOCRLightningModel(L.LightningModule):
         outputs = self(pixel_values, labels=labels)
         loss = outputs.loss
         
+        # Calculate token-level accuracy
         with torch.no_grad():
-            generated_ids = self.model.generate(pixel_values, max_length=256)
-            generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
-            
-            labels_copy = labels.clone()
-            labels_copy[labels_copy == -100] = self.processor.tokenizer.pad_token_id
-            reference_texts = self.processor.batch_decode(labels_copy, skip_special_tokens=True)
-            
-            cer = self.cer_metric.compute(predictions=generated_texts, references=reference_texts)
-            acc = max(0.0, 1.0 - cer)
-            self.train_acc.update(acc)
+            logits = outputs.logits
+            preds = torch.argmax(logits, dim=-1)
+            preds_flat = preds.view(-1)
+            labels_flat = labels.view(-1)
+            self.train_acc(preds_flat, labels_flat)
         
         self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
         self.log('train_acc', self.train_acc, prog_bar=True, on_step=False, on_epoch=True)
+        
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -354,210 +414,205 @@ class TrOCRLightningModel(L.LightningModule):
         outputs = self(pixel_values, labels=labels)
         loss = outputs.loss
         
-        generated_ids = self.model.generate(pixel_values, max_length=384)
-        generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
-        
-        labels_copy = labels.clone()
-        labels_copy[labels_copy == -100] = self.processor.tokenizer.pad_token_id
-        reference_texts = self.processor.batch_decode(labels_copy, skip_special_tokens=True)
-        
-        cer = self.cer_metric.compute(predictions=generated_texts, references=reference_texts)
-        wer = self.wer_metric.compute(predictions=generated_texts, references=reference_texts)
-        acc = max(0.0, 1.0 - cer)
-        self.val_acc.update(acc)
+        # Calculate token-level accuracy
+        logits = outputs.logits
+        preds = torch.argmax(logits, dim=-1)
+        preds_flat = preds.view(-1)
+        labels_flat = labels.view(-1)
+        self.val_acc(preds_flat, labels_flat)
         
         self.log('val_loss', loss, prog_bar=True, on_epoch=True)
-        self.log('val_cer', cer, prog_bar=True, on_epoch=True)
-        self.log('val_wer', wer, prog_bar=True, on_epoch=True)
         self.log('val_acc', self.val_acc, prog_bar=True, on_epoch=True)
         
-        return {'val_loss': loss, 'val_cer': cer, 'val_wer': wer, 'val_acc': acc}
+        return loss
     
-    def test_step(self, batch, batch_idx):
-        pixel_values = batch['pixel_values']
-        labels = batch['labels']
-        
-        generated_ids = self.model.generate(pixel_values, max_length=384)
-        generated_texts = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
-        
-        labels_copy = labels.clone()
-        labels_copy[labels_copy == -100] = self.processor.tokenizer.pad_token_id
-        reference_texts = self.processor.batch_decode(labels_copy, skip_special_tokens=True)
-        
-        cer = self.cer_metric.compute(predictions=generated_texts, references=reference_texts)
-        wer = self.wer_metric.compute(predictions=generated_texts, references=reference_texts)
-        acc = max(0.0, 1.0 - cer)
-        
-        self.log('test_cer', cer, prog_bar=True)
-        self.log('test_wer', wer, prog_bar=True)
-        self.log('test_acc', acc, prog_bar=True)
-        
-        return {'test_cer': cer, 'test_wer': wer, 'test_acc': acc}
     
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
             self.parameters(),
             lr=self.hparams.learning_rate,
+            betas=(0.9, 0.999),
+            eps=1e-8,
             weight_decay=0.01
         )
         
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        scheduler = get_cosine_schedule_with_warmup(
             optimizer,
-            mode='min',
-            factor=0.5,
-            patience=3
+            num_warmup_steps=self.hparams.warmup_steps,
+            num_training_steps=self.trainer.estimated_stepping_batches
         )
         
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'monitor': 'val_loss'
+                'interval': 'step'
             }
         }
 
 
+
+
 # ==========================
-# Training Functions
+# Main Execution with CLI
 # ==========================
 
-def train_strategy(strategy_name, model, data_module, max_epochs=10):
-    """Train a specific strategy."""
-    print(f"\n{'='*60}")
-    print(f"Training {strategy_name}")
-    print(f"{'='*60}\n")
+def main():
+    parser = argparse.ArgumentParser(description="Train TrOCR model on CORD-v2 dataset (RTX 4070 Ti optimized)")
+    parser.add_argument("--strategy", type=str, required=True, 
+                        choices=["frozen", "partial", "full"],
+                        help="Training strategy: frozen, partial, or full")
+    parser.add_argument("--epochs", type=int, required=True,
+                        help="Number of training epochs")
+    parser.add_argument("--batch_size", type=int, required=True,
+                        help="Batch size for training")
+    parser.add_argument("--gpu_id", type=int, default=0,
+                        help="GPU device ID (default: 0)")
+    parser.add_argument("--num_workers", type=int, default=4,
+                        help="Number of dataloader workers (default: 4)")
+    parser.add_argument("--accumulate_grad", type=int, default=16,
+                        help="Gradient accumulation steps (default: 16)")
+    parser.add_argument("--max_length", type=int, default=512,
+                        help="Maximum sequence length (default: 512)")
     
-    # Configure callbacks
-    checkpoint = ModelCheckpoint(
-        dirpath=f'./trocr_checkpoints/{strategy_name}',
-        filename=f'trocr-{strategy_name}-{{epoch:02d}}-{{val_loss:.4f}}',
+    args = parser.parse_args()
+    
+    # Setup logging
+    logger = setup_logging(args.strategy)
+    logger.info("=" * 80)
+    logger.info(f"TrOCR Training on RTX 4070 Ti - Strategy: {args.strategy}")
+    logger.info("=" * 80)
+    logger.info(f"Configuration:")
+    logger.info(f"  - Epochs: {args.epochs}")
+    logger.info(f"  - Batch size: {args.batch_size}")
+    logger.info(f"  - Gradient accumulation: {args.accumulate_grad}")
+    logger.info(f"  - Effective batch size: {args.batch_size * args.accumulate_grad}")
+    logger.info(f"  - Learning rate: 1e-4")
+    logger.info(f"  - GPU ID: {args.gpu_id}")
+    logger.info(f"  - Max length: {args.max_length}")
+    logger.info(f"  - Num workers: {args.num_workers}")
+    logger.info("=" * 80)
+    
+    # Set GPU
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info(f"Using device: {device}")
+    if torch.cuda.is_available():
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+        logger.info(f"CUDA Version: {torch.version.cuda}")
+    
+    # Load dataset
+    logger.info("Loading CORD-v2 dataset from Hugging Face...")
+    hf_dataset = load_dataset("naver-clova-ix/cord-v2")
+    logger.info(f"Dataset loaded: {len(hf_dataset['train'])} train, "
+               f"{len(hf_dataset['validation'])} val, {len(hf_dataset['test'])} test")
+    
+    # Load processor
+    logger.info("Loading TrOCR processor...")
+    trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-printed")
+    
+    # Create DataModule
+    logger.info("Creating data module...")
+    data_module = TrOCRDataModule(
+        hf_dataset=hf_dataset,
+        processor=trocr_processor,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        max_length=args.max_length,
+        use_augmentation=True,
+        logger=logger
+    )
+    data_module.setup()
+    
+    # Create model with appropriate strategy
+    logger.info(f"Initializing TrOCR model with {args.strategy} strategy...")
+    
+    if args.strategy == "frozen":
+        freeze_encoder = True
+        unfreeze_last_n = 0
+    elif args.strategy == "partial":
+        freeze_encoder = True
+        unfreeze_last_n = 3
+    else:  # full
+        freeze_encoder = False
+        unfreeze_last_n = 0
+    
+    lightning_model = TrOCRLightningModel(
+        model_name="microsoft/trocr-base-printed",
+        learning_rate=1e-4,
+        warmup_steps=500,
+        freeze_encoder=freeze_encoder,
+        unfreeze_last_n_layers=unfreeze_last_n,
+        logger_obj=logger
+    )
+    
+    # Setup callbacks
+    checkpoint_dir = f"./trocr_checkpoints/strategy_{args.strategy}"
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=checkpoint_dir,
+        filename='trocr-{epoch:02d}-{val_loss:.4f}-{val_acc:.4f}',
         monitor='val_loss',
         mode='min',
         save_top_k=3,
         save_last=True,
-        verbose=True,
+        verbose=True
     )
     
-    early_stop = EarlyStopping(
+    early_stop_callback = EarlyStopping(
         monitor='val_loss',
         patience=5,
         mode='min',
-        verbose=True,
+        verbose=True
     )
     
-    csv_logger = CSVLogger(save_dir='./trocr_logs', name=strategy_name)
+    # Setup CSV logger
+    csv_logger = CSVLogger(
+        save_dir='./trocr_logs',
+        name=f'strategy_{args.strategy}'
+    )
     
-    trainer = L.Trainer(
-        max_epochs=max_epochs,
-        callbacks=[checkpoint, early_stop],
+    # Create trainer
+    logger.info("Creating trainer...")
+    trainer = pl.Trainer(
+        max_epochs=args.epochs,
+        accelerator='gpu',
+        devices=1,
+        precision='16-mixed',
+        accumulate_grad_batches=args.accumulate_grad,
+        gradient_clip_val=1.0,
+        callbacks=[checkpoint_callback, early_stop_callback],
         logger=csv_logger,
-        accelerator='gpu' if torch.cuda.is_available() else 'cpu',
-        devices=1 if torch.cuda.is_available() else 'auto',
         log_every_n_steps=10,
+        val_check_interval=0.5,
+        enable_progress_bar=True,
+        enable_model_summary=True
     )
     
-    print(f"Checkpoints will be saved to: ./trocr_checkpoints/{strategy_name}")
-    print(f"Logs will be saved to: ./trocr_logs/{strategy_name}")
+    # Log training start
+    logger.info("=" * 80)
+    logger.info("Starting training...")
+    logger.info(f"Checkpoints: {checkpoint_dir}")
+    logger.info(f"Logs: ./trocr_logs/strategy_{args.strategy}")
+    logger.info("=" * 80)
     
-    # Check for existing checkpoint
-    checkpoint_path = f'./trocr_checkpoints/{strategy_name}/last.ckpt'
-    if os.path.exists(checkpoint_path):
-        print(f"Resuming training from {checkpoint_path}")
-        trainer.fit(model, data_module, ckpt_path=checkpoint_path)
-    else:
-        print("Starting training from scratch")
-        trainer.fit(model, data_module)
+    # Train
+    trainer.fit(lightning_model, data_module)
     
-    # Test best model
-    print(f"\nEvaluating best model: {checkpoint.best_model_path}")
-    trainer.test(model, data_module, ckpt_path=checkpoint.best_model_path)
+    # Log completion
+    logger.info("=" * 80)
+    logger.info("Training completed!")
+    logger.info(f"Best checkpoint: {checkpoint_callback.best_model_path}")
+    logger.info(f"Best validation loss: {checkpoint_callback.best_model_score:.4f}")
+    logger.info("=" * 80)
     
-    return checkpoint.best_model_path
-
-
-# ==========================
-# Main Execution
-# ==========================
-
-def main():
-    print("="*60)
-    print("TrOCR Training Script for CORD-v2 Receipt OCR")
-    print("="*60)
+    # Test evaluation
+    logger.info("Running test evaluation on best model...")
+    test_results = trainer.test(lightning_model, data_module, ckpt_path='best')
+    logger.info(f"Test results: {test_results}")
     
-    # Device info
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"\nUsing device: {device}")
-    if torch.cuda.is_available():
-        print(f"GPU: {torch.cuda.get_device_name(0)}")
-        print(f"CUDA Version: {torch.version.cuda}")
-    
-    # Load dataset
-    print("\nLoading CORD-v2 dataset from Hugging Face...")
-    ds = load_dataset("naver-clova-ix/cord-v2")
-    print(f"Dataset loaded: {len(ds['train'])} train, {len(ds['validation'])} val, {len(ds['test'])} test")
-    
-    # Load processor
-    print("\nLoading TrOCR processor...")
-    trocr_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-printed")
-    
-    # Initialize DataModule
-    print("\nInitializing TrOCR DataModule...")
-    trocr_dm = TrOCRDataModule(
-        hf_dataset=ds,
-        processor=trocr_processor,
-        batch_size=1,
-        num_workers=0,
-        use_augmentation=True,
-    )
-    trocr_dm.setup()
-    
-    # Strategy 1: Frozen Encoder
-    print("\n" + "="*60)
-    print("Initializing Strategy 1: Frozen Encoder")
-    print("="*60)
-    trocr_model_frozen = TrOCRLightningModel(
-        model_name="microsoft/trocr-base-printed",
-        learning_rate=5e-5,
-        freeze_encoder=True,
-        unfreeze_last_n_layers=0,
-    )
-    best_model_s1 = train_strategy("strategy1_frozen", trocr_model_frozen, trocr_dm)
-    
-    # Strategy 2: Partial Unfreezing
-    print("\n" + "="*60)
-    print("Initializing Strategy 2: Unfreeze Last 3 Layers")
-    print("="*60)
-    trocr_model_partial = TrOCRLightningModel(
-        model_name="microsoft/trocr-base-printed",
-        learning_rate=3e-5,
-        freeze_encoder=True,
-        unfreeze_last_n_layers=3,
-    )
-    best_model_s2 = train_strategy("strategy2_partial", trocr_model_partial, trocr_dm)
-    
-    # Strategy 3: Full Fine-tuning
-    print("\n" + "="*60)
-    print("Initializing Strategy 3: Full Fine-tuning")
-    print("="*60)
-    trocr_model_full = TrOCRLightningModel(
-        model_name="microsoft/trocr-base-printed",
-        learning_rate=2e-5,
-        freeze_encoder=False,
-        unfreeze_last_n_layers=0,
-    )
-    best_model_s3 = train_strategy("strategy3_full", trocr_model_full, trocr_dm)
-    
-    print("\n" + "="*60)
-    print("TrOCR Training Complete!")
-    print("="*60)
-    print(f"Best models saved:")
-    print(f"  Strategy 1: {best_model_s1}")
-    print(f"  Strategy 2: {best_model_s2}")
-    print(f"  Strategy 3: {best_model_s3}")
-    print("\nLogs and checkpoints saved to:")
-    print(f"  Checkpoints: ./trocr_checkpoints/")
-    print(f"  Logs: ./trocr_logs/")
+    logger.info("All done! 🎉")
 
 
 if __name__ == "__main__":
     main()
+
