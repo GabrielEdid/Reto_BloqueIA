@@ -1,0 +1,5 @@
+metric,value
+avg_accuracy,0.6483
+min_accuracy,0.0000
+max_accuracy,1.0000
+total_samples,100

@@ -1,0 +1,36 @@
+SHOP NAME
+Address: Lorem Ipsum, 23-10
+Telp. 11223344
+- * *
+*
+* * *
+CASH RECEIPT
+- * * *
+Description
+Price
+Lorem
+1.1
+Ipsum
+2.2
+Dolor sit amet
+3.3
+consectetur
+4.4
+Adipiscing elit
+5.5
+-
+* * * * a
+Total
+16.5
+Cash
+20.0
+Change
+3.5
+* * - *
+Bank card
+234
+Approval Code
+#123456
+-
+THANK YOU!
+designed by B freepik
