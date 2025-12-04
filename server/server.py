@@ -354,13 +354,13 @@ def main():
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="trocr_checkpoints/totals/totals-epoch=02-val_loss=0.599.ckpt",
+        default="../training/totals_trocr/totals-epoch=02-val_loss=0.599.ckpt",
         help="Ruta al checkpoint del modelo TrOCR"
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=5000,
+        default=8000,
         help="Puerto para el servidor"
     )
     parser.add_argument(

@@ -126,6 +126,7 @@ chmod +x setup.sh
 ```
 
 El script `setup.sh` automáticamente:
+
 1. Crea un entorno virtual en `env/`
 2. Actualiza pip
 3. Instala todas las dependencias de `requirements.txt`
@@ -241,14 +242,38 @@ python visualize_crops.py
 ```bash
 cd server
 
-# Instalar dependencias del servidor
-pip install -r requirements_server.txt
-
-# Iniciar servidor Flask
+# Iniciar servidor con configuración por defecto (puerto 8000)
 python server.py
+
+# Especificar checkpoint personalizado
+python server.py --checkpoint ../training/totals/totals-epoch=02-val_loss=0.599.ckpt
+
+# Cambiar puerto
+python server.py --port 5000
+
+# Guardar crops de las imágenes procesadas
+python server.py --save-crops server_crops
+
+# Ejecutar sin EasyOCR (solo TrOCR disponible)
+python server.py --no-easyocr
+
+# Configuración completa personalizada
+python server.py \
+    --checkpoint ../training/totals_trocr/totals-epoch=02-val_loss=0.599.ckpt \
+    --save-crops server_crops \
+    --port 8000 \
+    --host 0.0.0.0
 ```
 
-El servidor estará disponible en `http://localhost:5000`
+**Opciones disponibles:**
+
+- `--checkpoint`: Ruta al checkpoint del modelo TrOCR (default: `../training/totals_trocr/totals-epoch=02-val_loss=0.599.ckpt`)
+- `--port`: Puerto del servidor (default: `8000`)
+- `--host`: Host del servidor (default: `0.0.0.0`)
+- `--save-crops`: Directorio para guardar crops de imágenes procesadas (opcional)
+- `--no-easyocr`: Desactivar EasyOCR, solo usar TrOCR
+
+El servidor estará disponible en `http://localhost:8000`
 
 ### API Endpoints
 
@@ -256,13 +281,41 @@ El servidor estará disponible en `http://localhost:5000`
 # Health check
 GET /health
 
-# Procesar ticket
+# Procesar ticket - Método 1: Solo TrOCR (más rápido)
 POST /process
 Content-Type: multipart/form-data
-Body: image file
+Body:
+  - image: archivo de imagen
+  - method: "trocr" (opcional, default)
 
-# Ejemplo con curl
-curl -X POST -F "image=@ticket.jpg" http://localhost:5000/process
+# Procesar ticket - Método 2: TrOCR + EasyOCR (más preciso)
+POST /process
+Content-Type: multipart/form-data
+Body:
+  - image: archivo de imagen
+  - method: "trocr+easyocr"
+
+# Ejemplos con curl
+# Método básico (TrOCR solo)
+curl -X POST -F "image=@ticket.jpg" http://localhost:8000/process
+
+# Método combinado (TrOCR + EasyOCR)
+curl -X POST \
+  -F "image=@ticket.jpg" \
+  -F "method=trocr+easyocr" \
+  http://localhost:8000/process
+```
+
+**Respuesta del servidor:**
+
+```json
+{
+  "success": true,
+  "total": "1234.56",
+  "confidence": 0.95,
+  "method": "trocr",
+  "processing_time": 0.234
+}
 ```
 
 ## 📱 Aplicación Móvil
@@ -290,7 +343,7 @@ npm start
 
 - **Fuente**: Naver Clova IX
 - **Ubicación**: `data_set/`
-- **Contenido**: 
+- **Contenido**:
   - 1,000+ imágenes de recibos
   - Anotaciones OCR
   - Bounding boxes
@@ -312,32 +365,38 @@ data_set/
 ## 🔧 Dependencias Principales
 
 ### Machine Learning
+
 - **PyTorch** 2.0+ - Framework de Deep Learning
 - **PyTorch Lightning** - Wrapper de alto nivel
 - **Transformers (HuggingFace)** - Modelos pre-entrenados
 - **torchvision** - Utilidades de visión computacional
 
 ### OCR y Procesamiento
+
 - **EasyOCR** - OCR de fallback
 - **Pillow** - Procesamiento de imágenes
 - **OpenCV** - Visión computacional
 
 ### Data Science
+
 - **NumPy** - Computación numérica
 - **Pandas** - Manipulación de datos
 - **Matplotlib** - Visualización
 
 ### Server
+
 - **Flask** - API REST
 - **Flask-CORS** - Manejo de CORS
 
 ### Mobile
+
 - **React Native** - Framework móvil
 - **Expo** - Toolchain para React Native
 
 ## 📈 Resultados
 
 Los resultados de evaluación están disponibles en `evaluation/`:
+
 - `evaluation_results_frozen.txt` - Modelo con capas congeladas
 - `evaluation_results_full.txt` - Modelo completamente entrenado
 - `evaluation_results_partial.txt` - Entrenamiento parcial
@@ -345,15 +404,18 @@ Los resultados de evaluación están disponibles en `evaluation/`:
 ## 🎯 Modelos Disponibles
 
 ### TrOCR
+
 - **Estrategias**: frozen, full, partial
 - **Logs**: `training/trocr/trocr_logs/`
 - **Checkpoints**: `models/trocr/`
 
 ### Donut
+
 - **Estrategias**: frozen, partial
 - **Logs**: `training/donut/donut_logs/`
 
 ### Totals
+
 - **Modelo optimizado** para extracción de totales
 - **Checkpoint**: `training/totals/totals-epoch=02-val_loss=0.599.ckpt`
 
@@ -388,7 +450,9 @@ pip install -r requirements.txt --upgrade
 Este proyecto fue desarrollado como parte del Reto de Bloque de IA.
 
 **Equipo**:
+
 - Gabriel Edid
+- Paul Araque
 
 ## 📄 Licencia
 
