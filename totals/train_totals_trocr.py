@@ -133,10 +133,12 @@ class CORDTotalsHFDataset(Dataset):
         # Augmentación más agresiva para training
         if use_augmentation:
             self.transform = transforms.Compose([
-                transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
+                transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.02),
                 transforms.RandomApply([
-                    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 0.5))
-                ], p=0.3),
+                    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0))
+                ], p=0.5),
+                transforms.RandomAdjustSharpness(sharpness_factor=2.0, p=0.3),
+                transforms.RandomAutocontrast(p=0.3),
             ])
         else:
             self.transform = None
@@ -157,9 +159,10 @@ class CORDTotalsHFDataset(Dataset):
             text = info["text"]
             bbox = info["bbox"]
             
+            # CRÍTICO: Saltar samples sin bbox para evitar confusión
             if bbox is None:
                 skipped_no_bbox += 1
-                # Aún podemos usar la imagen completa, pero no es ideal
+                continue  # No usar imágenes completas
             
             self.samples.append({
                 "image": img,
@@ -314,10 +317,10 @@ class TrOCRTotalsModule(pl.LightningModule):
     def __init__(
         self,
         model_name: str = "microsoft/trocr-base-printed",
-        learning_rate: float = 5e-5,
-        warmup_steps: int = 300,
-        freeze_encoder: bool = True,
-        unfreeze_last_n_layers: int = 2,
+        learning_rate: float = 1e-4,  # Más agresivo
+        warmup_steps: int = 200,  # Warmup más corto
+        freeze_encoder: bool = False,  # NO congelar nada
+        unfreeze_last_n_layers: int = 0,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -468,7 +471,7 @@ class TrOCRTotalsModule(pl.LightningModule):
             lr=self.hparams.learning_rate,
             betas=(0.9, 0.999),
             eps=1e-8,
-            weight_decay=0.01,
+            weight_decay=0.05,  # Regularización más fuerte
         )
 
         if self.trainer is not None:
@@ -535,7 +538,7 @@ def main():
     )
     parser.add_argument("--epochs", type=int, required=True, help="Número de épocas")
     parser.add_argument("--batch", type=int, required=True, help="Batch size (recomendado: 8-16 en GPU potente)")
-    parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate (por defecto: 5e-5)")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate (por defecto: 1e-4, más agresivo)")
     parser.add_argument("--num_workers", type=int, default=4, help="Workers para DataLoader")
 
     args = parser.parse_args()
@@ -571,9 +574,9 @@ def main():
     model = TrOCRTotalsModule(
         model_name="microsoft/trocr-base-printed",
         learning_rate=args.lr,
-        warmup_steps=300,
-        freeze_encoder=True,
-        unfreeze_last_n_layers=2,  # Descongelar últimas 2 capas del encoder
+        warmup_steps=200,
+        freeze_encoder=False,  # Entrenar TODO el modelo
+        unfreeze_last_n_layers=0,
     )
 
     ckpt_dir = "trocr_checkpoints/totals"
