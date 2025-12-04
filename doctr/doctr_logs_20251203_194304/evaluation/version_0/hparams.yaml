@@ -1,0 +1,5 @@
+det_arch: db_mobilenet_v3_large
+learning_rate: 2.0e-05
+pretrained: true
+reco_arch: crnn_mobilenet_v3_small
+use_gpu: false

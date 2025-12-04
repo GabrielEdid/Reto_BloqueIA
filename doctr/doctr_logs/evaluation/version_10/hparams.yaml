@@ -1,0 +1,5 @@
+det_arch: db_resnet50
+learning_rate: 2.0e-05
+pretrained: true
+reco_arch: crnn_vgg16_bn
+use_gpu: false
