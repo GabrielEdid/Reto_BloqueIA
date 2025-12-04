@@ -77,32 +77,93 @@ def find_total_region(image_path, reader):
     
     # Si no hay números cercanos, usar imagen completa
     if not nearby_numbers:
-        return image, None, f"'{total_text}' sin número visible", None
+        # Estrategia de respaldo: buscar TODOS los números en la imagen
+        all_number_candidates = []
+        for (bbox, text, conf) in results:
+            # Más permisivo: cualquier texto con dígitos
+            if any(c.isdigit() for c in text):
+                bbox_xs = [point[0] for point in bbox]
+                bbox_ys = [point[1] for point in bbox]
+                bbox_y_center = (min(bbox_ys) + max(bbox_ys)) / 2
+                y_diff = abs(bbox_y_center - total_y_center)
+                
+                all_number_candidates.append({
+                    'x_min': int(min(bbox_xs)),
+                    'x_max': int(max(bbox_xs)),
+                    'y_min': int(min(bbox_ys)),
+                    'y_max': int(max(bbox_ys)),
+                    'y_diff': y_diff,
+                    'text': text
+                })
+        
+        if not all_number_candidates:
+            # Último recurso: crop alrededor de "TOTAL" expandiendo mucho a la derecha
+            width, height = image.size
+            x_min = total_x_min
+            x_max = min(width, total_x_max + 200)  # 200px a la derecha
+            y_min = max(0, total_y_min - 20)
+            y_max = min(height, total_y_max + 20)
+            crop = image.crop((x_min, y_min, x_max, y_max))
+            
+            # Mejorar imagen
+            from PIL import ImageEnhance
+            enhancer = ImageEnhance.Contrast(crop)
+            crop = enhancer.enhance(2.0)  # Contraste más agresivo
+            enhancer = ImageEnhance.Sharpness(crop)
+            crop = enhancer.enhance(2.5)
+            
+            return crop, (x_min, y_min, x_max, y_max), f"'{total_text}' - respaldo: expansión derecha", None
+        
+        # Usar el número más cercano verticalmente
+        all_number_candidates.sort(key=lambda x: x['y_diff'])
+        nearby_numbers = all_number_candidates[:3]  # Top 3 más cercanos
     
-    # Priorizar: 1) mismo nivel vertical y a la derecha, 2) más cercano verticalmente
-    nearby_numbers.sort(key=lambda x: (x['y_diff'], -x['x_distance']))
-    best_number = nearby_numbers[0]
+    # Combinar TODOS los números en la misma línea horizontal
+    # (no solo el primero, sino todos los fragmentos: "5", "180", ".", "00", etc.)
+    same_line_numbers = [n for n in nearby_numbers if n['y_diff'] < 20]
     
-    # Crop SOLO del número (no incluir "TOTAL")
-    x_min = best_number['x_min']
-    x_max = best_number['x_max']
-    y_min = best_number['y_min']
-    y_max = best_number['y_max']
+    if not same_line_numbers:
+        same_line_numbers = nearby_numbers[:1]  # Al menos uno
     
-    # Añadir margen
-    margin = 10
+    # Calcular bbox que englobe TODOS los números detectados en esa línea
+    x_min = min(n['x_min'] for n in same_line_numbers)
+    x_max = max(n['x_max'] for n in same_line_numbers)
+    y_min = min(n['y_min'] for n in same_line_numbers)
+    y_max = max(n['y_max'] for n in same_line_numbers)
+    
+    # Información de todos los fragmentos detectados
+    all_texts = " ".join([n['text'] for n in same_line_numbers])
+    
+    # Expandir horizontalmente para capturar números que puedan estar cortados
+    # EasyOCR a veces no detecta todos los dígitos
     width, height = image.size
-    x_min = max(0, x_min - margin)
-    y_min = max(0, y_min - margin)
-    x_max = min(width, x_max + margin)
-    y_max = min(height, y_max + margin)
+    bbox_width = x_max - x_min
+    horizontal_expansion = int(bbox_width * 0.3)  # Expandir 30% a cada lado
     
-    # Hacer crop solo del número
+    # Añadir margen generoso
+    margin_x = max(15, horizontal_expansion)
+    margin_y = 15
+    x_min = max(0, x_min - margin_x)
+    y_min = max(0, y_min - margin_y)
+    x_max = min(width, x_max + margin_x)
+    y_max = min(height, y_max + margin_y)
+    
+    # Hacer crop de toda la línea del número
     crop = image.crop((x_min, y_min, x_max, y_max))
     
-    info = f"'{total_text}' → detectado '{best_number['text']}'"
+    # Aplicar mejoras de imagen para mejorar legibilidad
+    # 1. Aumentar contraste
+    from PIL import ImageEnhance
+    enhancer = ImageEnhance.Contrast(crop)
+    crop = enhancer.enhance(1.5)  # Aumentar contraste 50%
     
-    return crop, (x_min, y_min, x_max, y_max), info, best_number['text']
+    # 2. Aumentar nitidez
+    enhancer = ImageEnhance.Sharpness(crop)
+    crop = enhancer.enhance(2.0)  # Duplicar nitidez
+    
+    info = f"'{total_text}' → detectado '{all_texts}'"
+    
+    return crop, (x_min, y_min, x_max, y_max), info, all_texts
 
 
 def main():

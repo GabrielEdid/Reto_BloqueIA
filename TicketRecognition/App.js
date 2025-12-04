@@ -20,7 +20,7 @@ export default function App() {
   const [result, setResult] = useState(null);
 
   // Configuración del servidor (cambiar según tu IP local)
-  const SERVER_URL = "http://192.168.1.100:5000"; // Cambiar por tu IP local
+  const SERVER_URL = "http://10.0.0.23:8000"; // Cambiar por tu IP local
 
   // Solicitar permisos para la cámara
   const requestCameraPermission = async () => {

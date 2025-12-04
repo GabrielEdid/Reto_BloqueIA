@@ -17,22 +17,25 @@ pip install -r requirements_server.txt
 
 ### Iniciar el servidor
 
+**⚠️ Nota importante sobre el puerto:**
+En macOS, el puerto 5000 está ocupado por AirPlay Receiver. **Usa el puerto 8000** en su lugar.
+
 **Opción 1: Con EasyOCR y TrOCR (recomendado)**
 
 ```bash
-python server.py --checkpoint trocr_checkpoints/totals/totals-epoch=02-val_loss=0.599.ckpt --port 5000
+python server.py --checkpoint totals-epoch=02-val_loss=0.599.ckpt --port 8000
 ```
 
 **Opción 2: Solo TrOCR (más rápido, menos memoria)**
 
 ```bash
-python server.py --checkpoint trocr_checkpoints/totals/totals-epoch=02-val_loss=0.599.ckpt --port 5000 --no-easyocr
+python server.py --checkpoint totals-epoch=02-val_loss=0.599.ckpt --port 8000 --no-easyocr
 ```
 
 ### Parámetros disponibles
 
 - `--checkpoint`: Ruta al checkpoint del modelo TrOCR (requerido)
-- `--port`: Puerto del servidor (default: 5000)
+- `--port`: Puerto del servidor (default: 5000, recomendado: 8000 en macOS)
 - `--host`: Host del servidor (default: 0.0.0.0)
 - `--no-easyocr`: No cargar EasyOCR (solo modo TrOCR disponible)
 
@@ -91,17 +94,20 @@ Procesa una imagen de ticket.
 
 1. **Encontrar tu IP local:**
 
-   - macOS/Linux: `ifconfig | grep "inet "`
-   - Windows: `ipconfig`
-
 2. **Actualizar App.js:**
    Cambiar la línea:
 
    ```javascript
-   const SERVER_URL = "http://192.168.1.100:5000";
+   const SERVER_URL = "http://192.168.1.100:8000"; // Usa puerto 8000
+   ```
+
+   Por tu IP local y asegúrate de usar el mismo puerto que el servidor. = "http://192.168.1.100:5000";
+
    ```
 
    Por tu IP local.
+
+   ```
 
 3. **Asegurar que el servidor y el dispositivo/emulador estén en la misma red.**
 
@@ -112,7 +118,7 @@ Procesa una imagen de ticket.
 base64_image=$(base64 -i test_ticket.jpg)
 
 # Enviar petición
-curl -X POST http://localhost:5000/process \
+curl -X POST http://localhost:8000/process \
   -H "Content-Type: application/json" \
   -d "{\"image\": \"$base64_image\", \"method\": \"easyocr\"}"
 ```
