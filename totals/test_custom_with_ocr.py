@@ -130,14 +130,24 @@ def main():
         default="custom_crops",
         help="Directorio para guardar crops"
     )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["trocr_only", "easyocr+trocr"],
+        default="easyocr+trocr",
+        help="Modo: 'trocr_only' (imagen completa a TrOCR) o 'easyocr+trocr' (EasyOCR detecta, TrOCR lee)"
+    )
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Usando device: {device}")
+    print(f"Modo: {args.mode}")
 
-    # Inicializar EasyOCR
-    print("Inicializando EasyOCR...")
-    reader = easyocr.Reader(['es', 'en'], gpu=torch.cuda.is_available())
+    # Inicializar EasyOCR solo si es necesario
+    reader = None
+    if args.mode == "easyocr+trocr":
+        print("Inicializando EasyOCR...")
+        reader = easyocr.Reader(['es', 'en'], gpu=torch.cuda.is_available())
 
     # Cargar processor
     processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-printed")
@@ -191,14 +201,25 @@ def main():
             try:
                 print(f"\n📄 {img_file.name}")
                 
-                # Detectar región del total
-                crop, bbox, info, ocr_text = find_total_region(img_file, reader)
-                print(f"   {info}")
-                
-                # Guardar crop si se solicita
-                if args.save_crops and bbox:
-                    crop_name = f"crop_{img_file.stem}.jpg"
-                    crop.save(output_path / crop_name)
+                if args.mode == "easyocr+trocr":
+                    # Modo: EasyOCR detecta, TrOCR lee el crop
+                    crop, bbox, info, ocr_text = find_total_region(img_file, reader)
+                    print(f"   {info}")
+                    
+                    # Guardar crop si se solicita
+                    if args.save_crops and bbox:
+                        crop_name = f"crop_{img_file.stem}.jpg"
+                        crop.save(output_path / crop_name)
+                else:
+                    # Modo: Solo TrOCR (imagen completa)
+                    crop = Image.open(img_file).convert("RGB")
+                    ocr_text = None
+                    print(f"   Usando imagen completa (sin EasyOCR)")
+                    
+                    # Guardar imagen completa si se solicita
+                    if args.save_crops:
+                        crop_name = f"full_{img_file.stem}.jpg"
+                        crop.save(output_path / crop_name)
                 
                 # Preprocesar
                 pixel_values = processor(crop, return_tensors="pt").pixel_values
