@@ -1,5 +1,5 @@
-freeze_encoder: true
-learning_rate: 5.0e-05
+freeze_encoder: false
+learning_rate: 0.0001
 model_name: microsoft/trocr-base-printed
-unfreeze_last_n_layers: 2
-warmup_steps: 300
+unfreeze_last_n_layers: 0
+warmup_steps: 200
