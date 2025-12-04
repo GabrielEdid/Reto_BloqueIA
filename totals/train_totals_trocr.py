@@ -35,47 +35,75 @@ def set_seed(seed: int = 42):
     torch.set_float32_matmul_precision("medium")
 
 
-def extract_totals_text(ground_truth_str: str) -> str:
+def extract_total_info(ground_truth_str: str) -> Optional[Dict[str, Any]]:
     """
-    Toma el campo 'ground_truth' del dataset CORD y construye una etiqueta
-    del tipo:
-
-      "TOTAL <total_price> [CASH <cashprice>] [CHANGE <changeprice>] [CARD <creditcardprice>]"
-
-    Si no hay nada usable, regresa cadena vacía.
+    Extrae el campo 'total_price' del dataset CORD junto con su bounding box.
+    Retorna un dict con 'text' y 'bbox' (x, y, w, h) o None si no hay información válida.
+    
+    El bbox permite recortar la región específica del total en la imagen.
     """
     try:
         gt = json.loads(ground_truth_str)
     except Exception:
-        return ""
+        return None
 
+    valid_lines = gt.get("valid_line", [])
+    
+    # Buscar el campo "total.total_price" en valid_line
+    for line in valid_lines:
+        words = line.get("words", [])
+        for word in words:
+            text = word.get("text", "").strip()
+            quad = word.get("quad", {})
+            
+            # Verificar si este word es el total_price
+            # En CORD, el quad tiene formato {"x1": ..., "y1": ..., "x2": ..., "y2": ..., ...}
+            if text and quad:
+                # Intentar parsear como precio (contiene dígitos)
+                clean_text = text.replace("Rp", "").replace(".", "").replace(",", "").replace(" ", "").strip()
+                if clean_text.isdigit() and len(clean_text) >= 4:  # Al menos 4 dígitos para ser un total
+                    # Extraer bounding box del quad
+                    try:
+                        x_coords = [quad.get(f"x{i}", 0) for i in range(1, 5)]
+                        y_coords = [quad.get(f"y{i}", 0) for i in range(1, 5)]
+                        
+                        x_min = min(x_coords)
+                        y_min = min(y_coords)
+                        x_max = max(x_coords)
+                        y_max = max(y_coords)
+                        
+                        # Expandir bbox para dar contexto
+                        margin = 10
+                        
+                        return {
+                            "text": clean_text,
+                            "bbox": {
+                                "x_min": max(0, x_min - margin),
+                                "y_min": max(0, y_min - margin),
+                                "x_max": x_max + margin,
+                                "y_max": y_max + margin,
+                            }
+                        }
+                    except Exception:
+                        continue
+    
+    # Fallback: buscar en gt_parse.total.total_price sin bbox
     parse = gt.get("gt_parse", {})
     total = parse.get("total")
-
-    total_price = ""
-    cash = ""
-    change = ""
-    card = ""
-
+    
     if isinstance(total, dict):
         total_price = str(total.get("total_price", "")).strip()
-        cash = str(total.get("cashprice", "")).strip()
-        change = str(total.get("changeprice", "")).strip()
-        card = str(total.get("creditcardprice", "")).strip()
     elif isinstance(total, str):
         total_price = total.strip()
-
-    parts: List[str] = []
+    else:
+        return None
+        
     if total_price:
-        parts.append(f"TOTAL {total_price}")
-    if cash:
-        parts.append(f"CASH {cash}")
-    if change:
-        parts.append(f"CHANGE {change}")
-    if card:
-        parts.append(f"CARD {card}")
-
-    return " ".join(parts).strip()
+        clean = total_price.replace("Rp", "").replace(".", "").replace(",", "").replace(" ", "").strip()
+        if clean.isdigit():
+            return {"text": clean, "bbox": None}  # Sin bbox, usar imagen completa
+    
+    return None
 
 
 # ---------------------------------------------------------------------
@@ -88,29 +116,55 @@ class CORDTotalsHFDataset(Dataset):
         self,
         hf_split,
         processor: TrOCRProcessor,
-        max_length: int = 64,
+        max_length: int = 32,
         use_augmentation: bool = False,
         split_name: str = "train",
     ):
         super().__init__()
         self.processor = processor
         self.max_length = max_length
+        self.split_name = split_name
 
+        # Augmentación más agresiva para training
         if use_augmentation:
-            self.transform = transforms.ColorJitter(brightness=0.05, contrast=0.05)
+            self.transform = transforms.Compose([
+                transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
+                transforms.RandomApply([
+                    transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 0.5))
+                ], p=0.3),
+            ])
         else:
             self.transform = None
 
         self.samples: List[Dict[str, Any]] = []
+        skipped_no_bbox = 0
+        skipped_no_text = 0
+        
         for sample in hf_split:
             img = sample["image"]
             gt_str = sample["ground_truth"]
-            text = extract_totals_text(gt_str)
-            if text.strip():
-                self.samples.append({"image": img, "text": text})
+            info = extract_total_info(gt_str)
+            
+            if info is None:
+                skipped_no_text += 1
+                continue
+                
+            text = info["text"]
+            bbox = info["bbox"]
+            
+            if bbox is None:
+                skipped_no_bbox += 1
+                # Aún podemos usar la imagen completa, pero no es ideal
+            
+            self.samples.append({
+                "image": img,
+                "text": text,
+                "bbox": bbox
+            })
 
         print(
-            f"[CORDTotalsHFDataset] ejemplos válidos: {len(self.samples)} de {len(hf_split)} ({split_name})"
+            f"[CORDTotalsHFDataset] {split_name}: {len(self.samples)} válidos de {len(hf_split)} "
+            f"(sin bbox: {skipped_no_bbox}, sin texto: {skipped_no_text})"
         )
 
     def __len__(self) -> int:
@@ -122,6 +176,28 @@ class CORDTotalsHFDataset(Dataset):
         if not isinstance(image, Image.Image):
             image = Image.fromarray(np.array(image))
 
+        # Crop a la región del total si hay bbox
+        bbox = sample.get("bbox")
+        if bbox is not None:
+            try:
+                x_min = int(bbox["x_min"])
+                y_min = int(bbox["y_min"])
+                x_max = int(bbox["x_max"])
+                y_max = int(bbox["y_max"])
+                
+                # Asegurar que el bbox es válido
+                w, h = image.size
+                x_min = max(0, min(x_min, w))
+                y_min = max(0, min(y_min, h))
+                x_max = max(x_min + 1, min(x_max, w))
+                y_max = max(y_min + 1, min(y_max, h))
+                
+                image = image.crop((x_min, y_min, x_max, y_max))
+            except Exception as e:
+                # Si falla el crop, usar imagen completa
+                print(f"Warning: Failed to crop image in {self.split_name}, using full image: {e}")
+
+        # Aplicar augmentación después del crop
         if self.transform is not None:
             image = self.transform(image)
 
@@ -160,7 +236,7 @@ class CORDTotalsDataModule(pl.LightningDataModule):
         processor: TrOCRProcessor,
         batch_size: int = 2,
         num_workers: int = 4,
-        max_length: int = 64,
+        max_length: int = 32,
     ):
         super().__init__()
         self.hf_dataset = hf_dataset
@@ -233,10 +309,10 @@ class TrOCRTotalsModule(pl.LightningModule):
     def __init__(
         self,
         model_name: str = "microsoft/trocr-base-printed",
-        learning_rate: float = 3e-5,
-        warmup_steps: int = 500,
+        learning_rate: float = 5e-5,
+        warmup_steps: int = 300,
         freeze_encoder: bool = True,
-        unfreeze_last_n_layers: int = 0,
+        unfreeze_last_n_layers: int = 2,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -452,10 +528,10 @@ def main():
         default="data_set/CORD_v2",
         help="No se usa cuando cargamos desde HuggingFace, se deja por compatibilidad.",
     )
-    parser.add_argument("--epochs", type=int, required=True)
-    parser.add_argument("--batch", type=int, required=True)
-    parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--epochs", type=int, required=True, help="Número de épocas")
+    parser.add_argument("--batch", type=int, required=True, help="Batch size (recomendado: 8-16 en GPU potente)")
+    parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate (por defecto: 5e-5)")
+    parser.add_argument("--num_workers", type=int, default=4, help="Workers para DataLoader")
 
     args = parser.parse_args()
 
@@ -482,7 +558,7 @@ def main():
         processor=processor,
         batch_size=args.batch,
         num_workers=args.num_workers,
-        max_length=64,
+        max_length=32,
     )
     dm.setup()
 
@@ -490,9 +566,9 @@ def main():
     model = TrOCRTotalsModule(
         model_name="microsoft/trocr-base-printed",
         learning_rate=args.lr,
-        warmup_steps=500,
+        warmup_steps=300,
         freeze_encoder=True,
-        unfreeze_last_n_layers=0,
+        unfreeze_last_n_layers=2,  # Descongelar últimas 2 capas del encoder
     )
 
     ckpt_dir = "trocr_checkpoints/totals"
@@ -510,8 +586,9 @@ def main():
     early_stop_cb = EarlyStopping(
         monitor="val_loss",
         mode="min",
-        patience=8,
+        patience=5,  # Reducir patience para detener antes si no mejora
         verbose=True,
+        min_delta=0.001,  # Mejora mínima significativa
     )
 
     csv_logger = CSVLogger(
