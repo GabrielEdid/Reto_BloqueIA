@@ -16,7 +16,7 @@ protobuf
 opencv-python
 Pillow>=9.5.0
 easyocr>=1.7.0
-python-doctr
+python-doctr[torch]>=0.7.0
 
 # Evaluation and metrics
 evaluate
@@ -28,3 +28,5 @@ flask-cors>=4.0.0
 
 # Visualization
 matplotlib
+seaborn
+tensorboard
