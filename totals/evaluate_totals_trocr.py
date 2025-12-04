@@ -102,6 +102,13 @@ def main():
         required=True,
         help="Ruta al .ckpt de Lightning (por ejemplo trocr_checkpoints/totals/totals-epoch=04-val_loss=1.555.ckpt)",
     )
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="validation",
+        choices=["train", "validation", "test"],
+        help="Split del dataset a evaluar (por defecto: validation)",
+    )
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,11 +133,11 @@ def main():
     for k, v in state_dict.items():
         if k.startswith(prefix):
             new_k = k[len(prefix) :]
-            new_state_dict[new_k] = v
-    missing, unexpected = model.load_state_dict(new_state_dict, strict=False)
-    print("Missing keys al cargar:", missing)
-    print("Unexpected keys al cargar:", unexpected)
-
+    # Dataset desde HuggingFace
+    print(f"Cargando dataset CORD-v2 (split {args.split}) desde HuggingFace...")
+    cord = load_dataset("naver-clova-ix/cord-v2")
+    val_ds = cord[args.split]
+    print(f"Ejemplos en {args.split}: {len(val_ds)}")
     model.eval()
 
     # Dataset de validación desde HuggingFace

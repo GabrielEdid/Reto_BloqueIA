@@ -95,6 +95,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--num", type=int, default=30, help="Ejemplos a mostrar")
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="validation",
+        choices=["train", "validation", "test"],
+        help="Split del dataset (por defecto: validation)",
+    )
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -117,8 +124,8 @@ if __name__ == "__main__":
     model.load_state_dict(fixed_sd, strict=False)
     model.eval()
 
-    print("Cargando dataset CORD-v2 (validation)...")
-    ds = load_dataset("naver-clova-ix/cord-v2")["validation"]
+    print(f"Cargando dataset CORD-v2 ({args.split})...")
+    ds = load_dataset("naver-clova-ix/cord-v2")[args.split]
 
     shown = 0
     n_no_bbox = 0
