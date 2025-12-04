@@ -16,6 +16,7 @@ protobuf
 opencv-python
 Pillow>=9.5.0
 easyocr>=1.7.0
+python-doctr
 
 # Evaluation and metrics
 evaluate
