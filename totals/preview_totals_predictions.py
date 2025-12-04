@@ -25,6 +25,7 @@ def clean_number(s: str) -> int:
 def extract_total_info(ground_truth_str: str) -> dict:
     """
     Extrae el campo 'total_price' del dataset CORD junto con su bounding box.
+    Busca específicamente en líneas que contengan 'total'.
     """
     try:
         gt = json.loads(ground_truth_str)
@@ -33,37 +34,44 @@ def extract_total_info(ground_truth_str: str) -> dict:
 
     valid_lines = gt.get("valid_line", [])
     
-    for line in valid_lines:
-        words = line.get("words", [])
-        for word in words:
-            text = word.get("text", "").strip()
-            quad = word.get("quad", {})
+    # Primero buscar "grand total", luego "total" sin "sub"
+    search_patterns = [("grand", "total"), ("total",)]
+    
+    for patterns in search_patterns:
+        for line in valid_lines:
+            words = line.get("words", [])
+            line_text = " ".join([w.get("text", "") for w in words]).lower()
             
-            if text and quad:
-                clean_text = text.replace("Rp", "").replace(".", "").replace(",", "").replace(" ", "").strip()
-                if clean_text.isdigit() and len(clean_text) >= 4:
-                    try:
-                        x_coords = [quad.get(f"x{i}", 0) for i in range(1, 5)]
-                        y_coords = [quad.get(f"y{i}", 0) for i in range(1, 5)]
-                        
-                        x_min = min(x_coords)
-                        y_min = min(y_coords)
-                        x_max = max(x_coords)
-                        y_max = max(y_coords)
-                        
-                        margin = 10
-                        
-                        return {
-                            "text": clean_text,
-                            "bbox": {
-                                "x_min": max(0, x_min - margin),
-                                "y_min": max(0, y_min - margin),
-                                "x_max": x_max + margin,
-                                "y_max": y_max + margin,
-                            }
-                        }
-                    except Exception:
-                        continue
+            if all(p in line_text for p in patterns) and "sub" not in line_text:
+                for word in reversed(words):
+                    text = word.get("text", "").strip()
+                    quad = word.get("quad", {})
+                    
+                    if text and quad:
+                        clean_text = text.replace("Rp", "").replace(".", "").replace(",", "").replace(" ", "").strip()
+                        if clean_text.isdigit() and len(clean_text) >= 4:
+                            try:
+                                x_coords = [quad.get(f"x{i}", 0) for i in range(1, 5)]
+                                y_coords = [quad.get(f"y{i}", 0) for i in range(1, 5)]
+                                
+                                x_min = min(x_coords)
+                                y_min = min(y_coords)
+                                x_max = max(x_coords)
+                                y_max = max(y_coords)
+                                
+                                margin = 10
+                                
+                                return {
+                                    "text": clean_text,
+                                    "bbox": {
+                                        "x_min": max(0, x_min - margin),
+                                        "y_min": max(0, y_min - margin),
+                                        "x_max": x_max + margin,
+                                        "y_max": y_max + margin,
+                                    }
+                                }
+                            except Exception:
+                                continue
     
     parse = gt.get("gt_parse", {})
     total = parse.get("total")

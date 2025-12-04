@@ -40,7 +40,7 @@ def extract_total_info(ground_truth_str: str) -> Optional[Dict[str, Any]]:
     Extrae el campo 'total_price' del dataset CORD junto con su bounding box.
     Retorna un dict con 'text' y 'bbox' (x, y, w, h) o None si no hay información válida.
     
-    El bbox permite recortar la región específica del total en la imagen.
+    Busca específicamente en líneas que contengan 'total' para evitar confusión con precios de items.
     """
     try:
         gt = json.loads(ground_truth_str)
@@ -49,43 +49,48 @@ def extract_total_info(ground_truth_str: str) -> Optional[Dict[str, Any]]:
 
     valid_lines = gt.get("valid_line", [])
     
-    # Buscar el campo "total.total_price" en valid_line
-    for line in valid_lines:
-        words = line.get("words", [])
-        for word in words:
-            text = word.get("text", "").strip()
-            quad = word.get("quad", {})
+    # Primero buscar "grand total" (más específico), luego "total" sin "sub"
+    # Hacemos dos pasadas para priorizar correctamente
+    search_patterns = [("grand", "total"), ("total",)]  # Orden de prioridad
+    
+    for patterns in search_patterns:
+        for line in valid_lines:
+            words = line.get("words", [])
+            line_text = " ".join([w.get("text", "") for w in words]).lower()
             
-            # Verificar si este word es el total_price
-            # En CORD, el quad tiene formato {"x1": ..., "y1": ..., "x2": ..., "y2": ..., ...}
-            if text and quad:
-                # Intentar parsear como precio (contiene dígitos)
-                clean_text = text.replace("Rp", "").replace(".", "").replace(",", "").replace(" ", "").strip()
-                if clean_text.isdigit() and len(clean_text) >= 4:  # Al menos 4 dígitos para ser un total
-                    # Extraer bounding box del quad
-                    try:
-                        x_coords = [quad.get(f"x{i}", 0) for i in range(1, 5)]
-                        y_coords = [quad.get(f"y{i}", 0) for i in range(1, 5)]
-                        
-                        x_min = min(x_coords)
-                        y_min = min(y_coords)
-                        x_max = max(x_coords)
-                        y_max = max(y_coords)
-                        
-                        # Expandir bbox para dar contexto
-                        margin = 10
-                        
-                        return {
-                            "text": clean_text,
-                            "bbox": {
-                                "x_min": max(0, x_min - margin),
-                                "y_min": max(0, y_min - margin),
-                                "x_max": x_max + margin,
-                                "y_max": y_max + margin,
-                            }
-                        }
-                    except Exception:
-                        continue
+            # Verificar que todas las patterns estén presentes
+            if all(p in line_text for p in patterns) and "sub" not in line_text:
+                # Buscar el número en esta línea (último word numérico)
+                for word in reversed(words):
+                    text = word.get("text", "").strip()
+                    quad = word.get("quad", {})
+                    
+                    if text and quad:
+                        clean_text = text.replace("Rp", "").replace(".", "").replace(",", "").replace(" ", "").strip()
+                        if clean_text.isdigit() and len(clean_text) >= 4:
+                            try:
+                                x_coords = [quad.get(f"x{i}", 0) for i in range(1, 5)]
+                                y_coords = [quad.get(f"y{i}", 0) for i in range(1, 5)]
+                                
+                                x_min = min(x_coords)
+                                y_min = min(y_coords)
+                                x_max = max(x_coords)
+                                y_max = max(y_coords)
+                                
+                                # Expandir bbox para dar contexto
+                                margin = 10
+                                
+                                return {
+                                    "text": clean_text,
+                                    "bbox": {
+                                        "x_min": max(0, x_min - margin),
+                                        "y_min": max(0, y_min - margin),
+                                        "x_max": x_max + margin,
+                                        "y_max": y_max + margin,
+                                    }
+                                }
+                            except Exception:
+                                continue
     
     # Fallback: buscar en gt_parse.total.total_price sin bbox
     parse = gt.get("gt_parse", {})
@@ -586,9 +591,9 @@ def main():
     early_stop_cb = EarlyStopping(
         monitor="val_loss",
         mode="min",
-        patience=5,  # Reducir patience para detener antes si no mejora
+        patience=10,  # Aumentado para permitir más entrenamiento
         verbose=True,
-        min_delta=0.001,  # Mejora mínima significativa
+        min_delta=0.0001,  # Umbral más bajo para detectar mejoras pequeñas
     )
 
     csv_logger = CSVLogger(
@@ -605,7 +610,7 @@ def main():
         logger=csv_logger,
         gradient_clip_val=1.0,
         log_every_n_steps=10,
-        val_check_interval=0.5,
+        val_check_interval=1.0,  # Validar cada época completa en lugar de 0.5
         enable_progress_bar=True,
         enable_model_summary=True,
     )
