@@ -1,184 +1,406 @@
 # Reto_BloqueIA
 
-PyTorch and PyTorch Lightning project workspace for receipt OCR and information extraction using the CORD-v2 dataset.
+Sistema completo de reconocimiento óptico de caracteres (OCR) y extracción de información de tickets/recibos utilizando modelos de Deep Learning (TrOCR y Donut) con PyTorch Lightning.
 
-## Projects
+## 📋 Descripción General
 
-This repository contains two main projects:
+Este proyecto implementa una solución end-to-end para la digitalización y extracción automática de información de tickets y recibos, incluyendo:
 
-### 1. Receipt OCR & Information Extraction (Python/PyTorch)
+- **Modelos de OCR**: TrOCR y Donut para reconocimiento de texto
+- **Extracción de totales**: Modelo especializado para detectar montos totales
+- **API Server**: Servidor Flask para inferencia en tiempo real
+- **App Móvil**: Aplicación React Native para captura de tickets
+- **Pipeline completo**: Desde entrenamiento hasta deployment
 
-Machine learning project for processing receipt images and extracting structured information.
+## 🎯 Características Principales
 
-### 2. TicketRecognition (React Native/Expo)
+- ✅ OCR de alta precisión con TrOCR y Donut
+- ✅ Detección especializada de montos totales
+- ✅ Integración con EasyOCR como fallback
+- ✅ API REST para inferencia
+- ✅ Aplicación móvil para captura de tickets
+- ✅ Scripts de entrenamiento configurables
+- ✅ Evaluación y testing exhaustivo
 
-Mobile application for capturing and uploading ticket/receipt photos.
+## 🗂️ Estructura del Proyecto
 
-📱 [View TicketRecognition Documentation](./TicketRecognition/README.md)
+```
+Reto_BloqueIA/
+├── training/                    # Scripts y modelos de entrenamiento
+│   ├── donut/                  # Entrenamiento del modelo Donut
+│   │   ├── train_donut.py
+│   │   ├── run_donut_a4500.sh
+│   │   └── donut_logs/
+│   ├── trocr/                  # Entrenamiento del modelo TrOCR
+│   │   ├── train_trocr.py
+│   │   ├── new_train_trocr.py
+│   │   ├── run_trocr_rtx4070.sh
+│   │   └── trocr_logs/
+│   └── totals/                 # Modelo especializado en totales
+│       ├── train_totals_trocr.py
+│       ├── totals-epoch=02-val_loss=0.599.ckpt
+│       └── trocr_logs/
+│
+├── evaluation/                  # Scripts de evaluación
+│   ├── evaluate_donut.py
+│   ├── evaluate_trocr.py
+│   ├── evaluate_totals_trocr.py
+│   ├── inspect_trocr_predictions.py
+│   ├── preview_totals_predictions.py
+│   ├── evaluation_results_frozen.txt
+│   ├── evaluation_results_full.txt
+│   └── evaluation_results_partial.txt
+│
+├── testing/                     # Scripts de testing y validación
+│   ├── test_custom_images.py
+│   ├── test_custom_with_ocr.py
+│   ├── test_extraction.py
+│   ├── visualize_crops.py
+│   ├── check_crops/
+│   ├── debug_crops/
+│   └── test_crops/
+│
+├── server/                      # Servidor de inferencia
+│   ├── server.py               # API Flask
+│   ├── requirements_server.txt
+│   └── tickets_de_prueba/      # Tickets para testing
+│
+├── TicketRecognition/          # App móvil React Native
+│   ├── App.js
+│   ├── app.json
+│   ├── babel.config.js
+│   ├── package.json
+│   └── assets/
+│
+├── data/                        # Datos de desarrollo
+│   ├── test_images/
+│   ├── test_crops/
+│   ├── debug_crops/
+│   └── check_crops/
+│
+├── data_set/                    # Dataset principal CORD-v2
+│   ├── images/
+│   ├── boxes/
+│   ├── annotations.xml
+│   ├── receipts.csv
+│   └── split/
+│       ├── train/
+│       └── test/
+│
+├── models/                      # Modelos entrenados
+│   └── trocr/
+│
+├── doctr/                       # Integración DocTR
+│
+├── Notebooks/                   # Notebooks Jupyter
+│   ├── Reto.ipynb
+│   ├── Dataset_Study.ipynb
+│   ├── Donut_Training.ipynb
+│   ├── TrOCR_Training.ipynb
+│   ├── 06_CV_Histograms.ipynb
+│   └── Project_Traffic_sign_classifier.ipynb
+│
+├── requirements.txt             # Dependencias Python
+├── setup.sh                     # Script de instalación
+└── README.md                    # Este archivo
+```
 
-## Dataset
+## 🚀 Instalación y Configuración
 
-This project uses the **CORD-v2 (Consolidated Receipt Dataset v2)** from Naver Clova IX:
+### Requisitos Previos
 
-- Dataset: `naver-clova-ix/cord-v2`
-- Source: Hugging Face Datasets
-- Content: Receipt images with OCR annotations, bounding boxes, and structured information
+- Python 3.8 o superior
+- CUDA 11.x o superior (para entrenamiento con GPU)
+- Node.js 14+ (para la app móvil)
 
-The CORD-v2 dataset contains:
-
-- Receipt images
-- OCR text annotations
-- Bounding box coordinates
-- Structured key-value information extraction
-
-## Features
-
-- Deep learning with PyTorch and PyTorch Lightning
-- Data preprocessing and augmentation
-- Model training with early stopping and checkpointing
-- Visualization of results
-
-## Requirements
-
-- Python 3.8 or higher
-- See `requirements.txt` for all Python dependencies
-
-## Quick Setup
-
-Run the automated setup script to create a virtual environment and install all dependencies:
+### Setup Rápido
 
 ```bash
+# Clonar el repositorio
+git clone https://github.com/GabrielEdid/Reto_BloqueIA.git
+cd Reto_BloqueIA
+
+# Ejecutar script de instalación
 chmod +x setup.sh
 ./setup.sh
 ```
 
-This script will:
+El script `setup.sh` automáticamente:
+1. Crea un entorno virtual en `env/`
+2. Actualiza pip
+3. Instala todas las dependencias de `requirements.txt`
 
-1. Create a Python virtual environment in the `env/` directory (if it doesn't exist)
-2. Activate the virtual environment
-3. Upgrade pip
-4. Install all required Python packages from `requirements.txt`
-
-### Manual Setup
-
-If you prefer to set up manually:
+### Setup Manual
 
 ```bash
-# Create virtual environment
+# Crear entorno virtual
 python3 -m venv env
 
-# Activate virtual environment
-source env/bin/activate
+# Activar entorno virtual
+source env/bin/activate  # Linux/Mac
+# o
+env\Scripts\activate     # Windows
 
-# Install dependencies
+# Instalar dependencias
 pip install -r requirements.txt
 ```
 
-## Project Structure
+## 🎓 Entrenamiento de Modelos
 
-```
-Reto_BloqueIA/
-├── TicketRecognition/          # React Native mobile app
-│   ├── App.js                  # Main app component
-│   ├── package.json            # Node.js dependencies
-│   ├── app.json                # Expo configuration
-│   └── README.md               # Mobile app documentation
-├── Reto.ipynb                  # Main Jupyter notebook
-├── Project_Traffic_sign_classifier.ipynb  # Reference notebook
-├── 06_CV_Histograms.ipynb     # Computer vision examples
-├── data_set/                   # Receipt dataset
-│   ├── images/                 # Receipt images
-│   ├── annotations.xml         # Image annotations
-│   └── receipts.csv           # Receipt metadata
-├── requirements.txt            # Python dependencies
-├── setup.sh                    # Python environment setup
-├── env/                        # Python virtual environment
-└── README.md                   # This file
-```
-
-## Usage
-
-### Python/Machine Learning Project
-
-1. Make the setup script executable and run it:
-
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
-
-2. The virtual environment will be automatically activated. For future sessions, activate it manually:
-
-   ```bash
-   source env/bin/activate
-   ```
-
-3. Open the Jupyter notebook:
-
-   ```bash
-   jupyter notebook Reto.ipynb
-   ```
-
-   Or open it directly in VS Code.
-
-4. Start working on your project using the installed dependencies.
-
-### Mobile App (TicketRecognition)
-
-1. Navigate to the mobile app directory:
-
-   ```bash
-   cd TicketRecognition
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Start the Expo development server:
-
-   ```bash
-   npm start
-   ```
-
-4. Scan the QR code with Expo Go app or press `i`/`a` for iOS/Android simulator.
-
-For detailed mobile app instructions, see [TicketRecognition/README.md](./TicketRecognition/README.md).
-
-## Virtual Environment
-
-The setup script creates a virtual environment in the `env/` directory to isolate project dependencies.
-
-To activate the virtual environment:
+### TrOCR (Transformer-based OCR)
 
 ```bash
+# Activar entorno
 source env/bin/activate
+
+# Entrenamiento básico
+cd training/trocr
+python train_trocr.py
+
+# Entrenamiento con script optimizado
+python new_train_trocr.py
+
+# Ejecución en RTX 4070
+bash run_trocr_rtx4070.sh
 ```
 
-To deactivate:
+### Donut (Document Understanding Transformer)
 
 ```bash
-deactivate
+cd training/donut
+python train_donut.py
+
+# Ejecución en A4500
+bash run_donut_a4500.sh
 ```
 
-## Configuration
+### Modelo de Totales
 
-Configure your project settings as needed within your notebooks or by creating configuration files for your specific use case.
+```bash
+cd training/totals
+python train_totals_trocr.py
+```
 
-## Dependencies
+**Modelo pre-entrenado disponible**: `training/totals/totals-epoch=02-val_loss=0.599.ckpt`
 
-Key libraries used in this project:
+## 🧪 Evaluación
 
-- **PyTorch** - Deep learning framework
-- **PyTorch Lightning** - High-level PyTorch wrapper
-- **torchvision** - Computer vision utilities
-- **OpenCV** - Image processing
-- **NumPy** - Numerical computing
-- **Pandas** - Data manipulation
-- **Matplotlib** - Visualization
+### Evaluar TrOCR
 
-## License
+```bash
+cd evaluation
+python evaluate_trocr.py
+```
 
-See LICENSE file for details.
+### Evaluar Donut
+
+```bash
+python evaluate_donut.py
+```
+
+### Evaluar Modelo de Totales
+
+```bash
+python evaluate_totals_trocr.py
+```
+
+### Ver Predicciones
+
+```bash
+# Previsualizar predicciones de totales
+python preview_totals_predictions.py
+
+# Inspeccionar predicciones de TrOCR
+python inspect_trocr_predictions.py
+```
+
+## 🧩 Testing
+
+### Test con Imágenes Personalizadas
+
+```bash
+cd testing
+
+# Test básico
+python test_custom_images.py
+
+# Test con OCR combinado (TrOCR + EasyOCR)
+python test_custom_with_ocr.py
+
+# Test de extracción
+python test_extraction.py
+
+# Visualizar crops
+python visualize_crops.py
+```
+
+## 🌐 Servidor de Inferencia
+
+### Iniciar Servidor
+
+```bash
+cd server
+
+# Instalar dependencias del servidor
+pip install -r requirements_server.txt
+
+# Iniciar servidor Flask
+python server.py
+```
+
+El servidor estará disponible en `http://localhost:5000`
+
+### API Endpoints
+
+```bash
+# Health check
+GET /health
+
+# Procesar ticket
+POST /process
+Content-Type: multipart/form-data
+Body: image file
+
+# Ejemplo con curl
+curl -X POST -F "image=@ticket.jpg" http://localhost:5000/process
+```
+
+## 📱 Aplicación Móvil
+
+### Setup de la App
+
+```bash
+cd TicketRecognition
+
+# Instalar dependencias
+npm install
+
+# Iniciar Expo
+npm start
+```
+
+### Ejecutar en Dispositivo
+
+- **iOS**: Escanea el QR con la app Expo Go o presiona `i` para simulador
+- **Android**: Escanea el QR con la app Expo Go o presiona `a` para simulador
+
+## 📊 Dataset
+
+### CORD-v2 (Consolidated Receipt Dataset v2)
+
+- **Fuente**: Naver Clova IX
+- **Ubicación**: `data_set/`
+- **Contenido**: 
+  - 1,000+ imágenes de recibos
+  - Anotaciones OCR
+  - Bounding boxes
+  - Información estructurada clave-valor
+
+### Estructura del Dataset
+
+```
+data_set/
+├── images/          # Imágenes de recibos
+├── boxes/           # Bounding boxes
+├── split/
+│   ├── train/      # Set de entrenamiento
+│   └── test/       # Set de prueba
+├── annotations.xml  # Anotaciones
+└── receipts.csv    # Metadata
+```
+
+## 🔧 Dependencias Principales
+
+### Machine Learning
+- **PyTorch** 2.0+ - Framework de Deep Learning
+- **PyTorch Lightning** - Wrapper de alto nivel
+- **Transformers (HuggingFace)** - Modelos pre-entrenados
+- **torchvision** - Utilidades de visión computacional
+
+### OCR y Procesamiento
+- **EasyOCR** - OCR de fallback
+- **Pillow** - Procesamiento de imágenes
+- **OpenCV** - Visión computacional
+
+### Data Science
+- **NumPy** - Computación numérica
+- **Pandas** - Manipulación de datos
+- **Matplotlib** - Visualización
+
+### Server
+- **Flask** - API REST
+- **Flask-CORS** - Manejo de CORS
+
+### Mobile
+- **React Native** - Framework móvil
+- **Expo** - Toolchain para React Native
+
+## 📈 Resultados
+
+Los resultados de evaluación están disponibles en `evaluation/`:
+- `evaluation_results_frozen.txt` - Modelo con capas congeladas
+- `evaluation_results_full.txt` - Modelo completamente entrenado
+- `evaluation_results_partial.txt` - Entrenamiento parcial
+
+## 🎯 Modelos Disponibles
+
+### TrOCR
+- **Estrategias**: frozen, full, partial
+- **Logs**: `training/trocr/trocr_logs/`
+- **Checkpoints**: `models/trocr/`
+
+### Donut
+- **Estrategias**: frozen, partial
+- **Logs**: `training/donut/donut_logs/`
+
+### Totals
+- **Modelo optimizado** para extracción de totales
+- **Checkpoint**: `training/totals/totals-epoch=02-val_loss=0.599.ckpt`
+
+## 🛠️ Comandos Útiles
+
+```bash
+# Activar entorno
+source env/bin/activate
+
+# Desactivar entorno
+deactivate
+
+# Ver logs de entrenamiento
+tensorboard --logdir training/trocr/trocr_logs
+
+# Limpiar cache de Python
+find . -type d -name __pycache__ -exec rm -r {} +
+
+# Actualizar dependencias
+pip install -r requirements.txt --upgrade
+```
+
+## 📝 Notas de Desarrollo
+
+- Los notebooks en la raíz son para exploración y desarrollo
+- Los logs de entrenamiento se guardan automáticamente
+- El servidor usa el mejor checkpoint disponible
+- La app móvil se conecta al servidor local por defecto
+
+## 🤝 Contribuciones
+
+Este proyecto fue desarrollado como parte del Reto de Bloque de IA.
+
+**Equipo**:
+- Gabriel Edid
+
+## 📄 Licencia
+
+Ver archivo LICENSE para detalles.
+
+## 🔗 Enlaces Útiles
+
+- [CORD-v2 Dataset](https://huggingface.co/datasets/naver-clova-ix/cord-v2)
+- [TrOCR Documentation](https://huggingface.co/docs/transformers/model_doc/trocr)
+- [Donut Documentation](https://huggingface.co/docs/transformers/model_doc/donut)
+- [PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/)
+
+---
+
+**Última actualización**: Diciembre 2025

@@ -1,15 +1,29 @@
-numpy
-pandas
-matplotlib
-Pillow
-opencv-python
-torch
+# Core ML/DL libraries
+torch>=2.0.0
 torchvision
 torchmetrics
 lightning
+transformers>=4.30.0
+
+# Data processing
+numpy>=1.24.0
+pandas
 datasets
-transformers
 sentencepiece
+protobuf
+
+# Computer vision and OCR
+opencv-python
+Pillow>=9.5.0
+easyocr>=1.7.0
+
+# Evaluation and metrics
 evaluate
 jiwer
-protobuf
+
+# Web server
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Visualization
+matplotlib
