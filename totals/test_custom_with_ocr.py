@@ -16,8 +16,8 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 def find_total_region(image_path, reader):
     """
-    Usa EasyOCR para encontrar la región que contiene "TOTAL".
-    Retorna el crop de esa región con margen.
+    Usa EasyOCR para encontrar la región que contiene "TOTAL" y el número asociado.
+    Retorna el crop de toda la línea con el número.
     """
     # Leer imagen
     image = Image.open(image_path).convert("RGB")
@@ -38,17 +38,61 @@ def find_total_region(image_path, reader):
         return image, None, "No se encontró 'TOTAL' en la imagen"
     
     # Tomar la última ocurrencia (generalmente el total final está al final)
-    bbox, text, conf = total_boxes[-1]
+    total_bbox, total_text, total_conf = total_boxes[-1]
     
-    # Extraer coordenadas del bbox
-    # bbox es [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-    xs = [point[0] for point in bbox]
-    ys = [point[1] for point in bbox]
-    x_min, x_max = int(min(xs)), int(max(xs))
-    y_min, y_max = int(min(ys)), int(max(ys))
+    # Extraer coordenadas del bbox de "TOTAL"
+    xs = [point[0] for point in total_bbox]
+    ys = [point[1] for point in total_bbox]
+    total_x_min, total_x_max = int(min(xs)), int(max(xs))
+    total_y_min, total_y_max = int(min(ys)), int(max(ys))
+    total_y_center = (total_y_min + total_y_max) / 2
     
-    # Añadir margen
-    margin = 10
+    # Buscar números cercanos (misma línea horizontal o justo debajo)
+    nearby_numbers = []
+    for (bbox, text, conf) in results:
+        # Verificar si contiene dígitos
+        if not any(c.isdigit() for c in text):
+            continue
+        
+        # Calcular centro vertical del bbox
+        bbox_ys = [point[1] for point in bbox]
+        bbox_y_center = (min(bbox_ys) + max(bbox_ys)) / 2
+        
+        # Verificar si está en la misma línea (±20px) o justo debajo (hasta +50px)
+        y_diff = bbox_y_center - total_y_center
+        if -20 <= y_diff <= 50:
+            bbox_xs = [point[0] for point in bbox]
+            nearby_numbers.append({
+                'bbox': bbox,
+                'text': text,
+                'conf': conf,
+                'x_min': int(min(bbox_xs)),
+                'x_max': int(max(bbox_xs)),
+                'y_min': int(min(bbox_ys)),
+                'y_max': int(max(bbox_ys)),
+                'y_diff': abs(y_diff)
+            })
+    
+    # Si no hay números cercanos, usar solo el bbox de TOTAL expandido
+    if not nearby_numbers:
+        x_min, x_max = total_x_min, total_x_max
+        y_min, y_max = total_y_min, total_y_max
+        info = f"'{total_text}' sin número visible"
+    else:
+        # Ordenar por cercanía vertical y tomar el más cercano
+        nearby_numbers.sort(key=lambda x: x['y_diff'])
+        best_number = nearby_numbers[0]
+        
+        # Combinar bboxes (TOTAL + número)
+        x_min = min(total_x_min, best_number['x_min'])
+        x_max = max(total_x_max, best_number['x_max'])
+        y_min = min(total_y_min, best_number['y_min'])
+        y_max = max(total_y_max, best_number['y_max'])
+        
+        info = f"'{total_text}' + número '{best_number['text']}'"
+    
+    # Añadir margen generoso
+    margin = 15
     width, height = image.size
     x_min = max(0, x_min - margin)
     y_min = max(0, y_min - margin)
@@ -58,7 +102,7 @@ def find_total_region(image_path, reader):
     # Hacer crop
     crop = image.crop((x_min, y_min, x_max, y_max))
     
-    return crop, (x_min, y_min, x_max, y_max), f"Encontrado '{text}' (conf: {conf:.2f})"
+    return crop, (x_min, y_min, x_max, y_max), info
 
 
 def main():
