@@ -2,7 +2,7 @@
 
 Sistema completo de reconocimiento óptico de caracteres (OCR) y extracción de información de tickets/recibos utilizando modelos de Deep Learning (TrOCR y Donut) con PyTorch Lightning.
 
-## 📋 Descripción General
+## Descripción General
 
 Este proyecto implementa una solución end-to-end para la digitalización y extracción automática de información de tickets y recibos, incluyendo:
 
@@ -12,17 +12,17 @@ Este proyecto implementa una solución end-to-end para la digitalización y extr
 - **App Móvil**: Aplicación React Native para captura de tickets
 - **Pipeline completo**: Desde entrenamiento hasta deployment
 
-## 🎯 Características Principales
+## Características Principales
 
-- ✅ OCR de alta precisión con TrOCR y Donut
-- ✅ Detección especializada de montos totales
-- ✅ Integración con EasyOCR como fallback
-- ✅ API REST para inferencia
-- ✅ Aplicación móvil para captura de tickets
-- ✅ Scripts de entrenamiento configurables
-- ✅ Evaluación y testing exhaustivo
+- OCR de alta precisión con TrOCR y Donut
+- Detección especializada de montos totales
+- Integración con EasyOCR como fallback
+- API REST para inferencia
+- Aplicación móvil para captura de tickets
+- Scripts de entrenamiento configurables
+- Evaluación y testing exhaustivo
 
-## 🗂️ Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 Reto_BloqueIA/
@@ -91,21 +91,27 @@ Reto_BloqueIA/
 │   └── trocr/
 │
 ├── doctr/                       # Integración DocTR
+│   ├── train_doctr.py          # Script de entrenamiento
+│   ├── test_real_tickets.py    # Testing con tickets reales
+│   ├── visualize_results.py    # Visualización de resultados
+│   ├── run_doctr.sh            # Script de ejecución
+│   ├── doctr_logs/             # Logs de entrenamiento
+│   ├── results_doctr_*/        # Resultados de evaluación
+│   ├── real_tickets_results_*/ # Resultados con tickets reales
+│   └── tickets_de_prueba/      # Tickets para testing
 │
 ├── Notebooks/                   # Notebooks Jupyter
-│   ├── Reto.ipynb
 │   ├── Dataset_Study.ipynb
 │   ├── Donut_Training.ipynb
 │   ├── TrOCR_Training.ipynb
-│   ├── 06_CV_Histograms.ipynb
-│   └── Project_Traffic_sign_classifier.ipynb
+│   ├── docTR_Training.ipynb
 │
 ├── requirements.txt             # Dependencias Python
 ├── setup.sh                     # Script de instalación
 └── README.md                    # Este archivo
 ```
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 ### Requisitos Previos
 
@@ -146,7 +152,7 @@ env\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-## 🎓 Entrenamiento de Modelos
+## Entrenamiento de Modelos
 
 ### TrOCR (Transformer-based OCR)
 
@@ -184,7 +190,7 @@ python train_totals_trocr.py
 
 **Modelo pre-entrenado disponible**: `training/totals/totals-epoch=02-val_loss=0.599.ckpt`
 
-## 🧪 Evaluación
+## Evaluación
 
 ### Evaluar TrOCR
 
@@ -215,7 +221,7 @@ python preview_totals_predictions.py
 python inspect_trocr_predictions.py
 ```
 
-## 🧩 Testing
+## Testing
 
 ### Test con Imágenes Personalizadas
 
@@ -235,7 +241,7 @@ python test_extraction.py
 python visualize_crops.py
 ```
 
-## 🌐 Servidor de Inferencia
+## Servidor de Inferencia
 
 ### Iniciar Servidor
 
@@ -318,7 +324,7 @@ curl -X POST \
 }
 ```
 
-## 📱 Aplicación Móvil
+## Aplicación Móvil
 
 ### Setup de la App
 
@@ -337,7 +343,7 @@ npm start
 - **iOS**: Escanea el QR con la app Expo Go o presiona `i` para simulador
 - **Android**: Escanea el QR con la app Expo Go o presiona `a` para simulador
 
-## 📊 Dataset
+## Dataset
 
 ### CORD-v2 (Consolidated Receipt Dataset v2)
 
@@ -362,7 +368,7 @@ data_set/
 └── receipts.csv    # Metadata
 ```
 
-## 🔧 Dependencias Principales
+## Dependencias Principales
 
 ### Machine Learning
 
@@ -393,7 +399,7 @@ data_set/
 - **React Native** - Framework móvil
 - **Expo** - Toolchain para React Native
 
-## 📈 Resultados
+## Resultados
 
 Los resultados de evaluación están disponibles en `evaluation/`:
 
@@ -401,7 +407,7 @@ Los resultados de evaluación están disponibles en `evaluation/`:
 - `evaluation_results_full.txt` - Modelo completamente entrenado
 - `evaluation_results_partial.txt` - Entrenamiento parcial
 
-## 🎯 Modelos Disponibles
+## Modelos Disponibles
 
 ### TrOCR
 
@@ -419,7 +425,7 @@ Los resultados de evaluación están disponibles en `evaluation/`:
 - **Modelo optimizado** para extracción de totales
 - **Checkpoint**: `training/totals/totals-epoch=02-val_loss=0.599.ckpt`
 
-## 🛠️ Comandos Útiles
+## Comandos Útiles
 
 ```bash
 # Activar entorno
@@ -438,14 +444,22 @@ find . -type d -name __pycache__ -exec rm -r {} +
 pip install -r requirements.txt --upgrade
 ```
 
-## 📝 Notas de Desarrollo
+## Notas de Desarrollo
 
 - Los notebooks en la raíz son para exploración y desarrollo
 - Los logs de entrenamiento se guardan automáticamente
 - El servidor usa el mejor checkpoint disponible
 - La app móvil se conecta al servidor local por defecto
 
-## 🤝 Contribuciones
+## Presentación Final
+
+La presentación final del proyecto se encuentra en el archivo **Extracción de Texto en Tickets - Presentación Final.pdf**.
+
+## Video Demo
+
+Un video demostrativo de la aplicación y los modelos en producción está disponible en **Video Muestra App y Modelos en Producción.MP4**.
+
+## Contribuciones
 
 Este proyecto fue desarrollado como parte del Reto de Bloque de IA.
 
@@ -454,11 +468,11 @@ Este proyecto fue desarrollado como parte del Reto de Bloque de IA.
 - Gabriel Edid
 - Paul Araque
 
-## 📄 Licencia
+## Licencia
 
 Ver archivo LICENSE para detalles.
 
-## 🔗 Enlaces Útiles
+## Enlaces Útiles
 
 - [CORD-v2 Dataset](https://huggingface.co/datasets/naver-clova-ix/cord-v2)
 - [TrOCR Documentation](https://huggingface.co/docs/transformers/model_doc/trocr)
