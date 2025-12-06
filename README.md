@@ -27,6 +27,16 @@ Este proyecto implementa una solución end-to-end para la digitalización y extr
 ```
 Reto_BloqueIA/
 ├── training/                    # Scripts y modelos de entrenamiento
+│   ├── doctr/                  # Entrenamiento y evaluación del modelo docTR
+│   │   ├── train_doctr.py
+│   │   ├── test_real_tickets.py
+│   │   ├── visualize_results.py
+│   │   ├── run_doctr.sh
+│   │   ├── doctr_logs/
+│   │   ├── results_doctr_*/
+│   │   ├── real_tickets_results_*/
+│   │   ├── tickets_de_prueba/
+│   │   └── version_0/
 │   ├── donut/                  # Entrenamiento del modelo Donut
 │   │   ├── train_donut.py
 │   │   ├── run_donut_a4500.sh
@@ -36,9 +46,8 @@ Reto_BloqueIA/
 │   │   ├── new_train_trocr.py
 │   │   ├── run_trocr_rtx4070.sh
 │   │   └── trocr_logs/
-│   └── totals/                 # Modelo especializado en totales
+│   └── totals_trocr/           # Modelo TrOCR especializado en totales
 │       ├── train_totals_trocr.py
-│       ├── totals-epoch=02-val_loss=0.599.ckpt
 │       └── trocr_logs/
 │
 ├── evaluation/                  # Scripts de evaluación
@@ -56,13 +65,10 @@ Reto_BloqueIA/
 │   ├── test_custom_with_ocr.py
 │   ├── test_extraction.py
 │   ├── visualize_crops.py
-│   ├── check_crops/
-│   ├── debug_crops/
-│   └── test_crops/
+│   └── check_crops/
 │
 ├── server/                      # Servidor de inferencia
 │   ├── server.py               # API Flask
-│   ├── requirements_server.txt
 │   └── tickets_de_prueba/      # Tickets para testing
 │
 ├── TicketRecognition/          # App móvil React Native
@@ -72,42 +78,17 @@ Reto_BloqueIA/
 │   ├── package.json
 │   └── assets/
 │
-├── data/                        # Datos de desarrollo
-│   ├── test_images/
-│   ├── test_crops/
-│   ├── debug_crops/
-│   └── check_crops/
+├── env/                         # Entorno virtual Python
 │
-├── data_set/                    # Dataset principal CORD-v2
-│   ├── images/
-│   ├── boxes/
-│   ├── annotations.xml
-│   ├── receipts.csv
-│   └── split/
-│       ├── train/
-│       └── test/
-│
-├── models/                      # Modelos entrenados
-│   └── trocr/
-│
-├── doctr/                       # Integración DocTR
-│   ├── train_doctr.py          # Script de entrenamiento
-│   ├── test_real_tickets.py    # Testing con tickets reales
-│   ├── visualize_results.py    # Visualización de resultados
-│   ├── run_doctr.sh            # Script de ejecución
-│   ├── doctr_logs/             # Logs de entrenamiento
-│   ├── results_doctr_*/        # Resultados de evaluación
-│   ├── real_tickets_results_*/ # Resultados con tickets reales
-│   └── tickets_de_prueba/      # Tickets para testing
-│
-├── Notebooks/                   # Notebooks Jupyter
-│   ├── Dataset_Study.ipynb
-│   ├── Donut_Training.ipynb
-│   ├── TrOCR_Training.ipynb
-│   ├── docTR_Training.ipynb
+├── Dataset_Study.ipynb          # Notebooks Jupyter
+├── Doctr_Training.ipynb
+├── Donut_Training.ipynb
+├── TrOCR_Training.ipynb
 │
 ├── requirements.txt             # Dependencias Python
 ├── setup.sh                     # Script de instalación
+├── Extracción de Texto en Tickets - Presentación Final.pdf
+├── Video Muestra App y Modelos en Producción.MP4
 └── README.md                    # Este archivo
 ```
 
