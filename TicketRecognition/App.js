@@ -26,7 +26,7 @@ export default function App() {
   const [showResultModal, setShowResultModal] = useState(false);
 
   // Configuración del servidor (cambiar según tu IP local)
-  const SERVER_URL = "http://10.49.126.247:8000";
+  const SERVER_URL = "http://10.0.0.23:8000";
 
   const requestCameraPermission = async () => {
     const { status } = await Camera.requestCameraPermissionsAsync();
